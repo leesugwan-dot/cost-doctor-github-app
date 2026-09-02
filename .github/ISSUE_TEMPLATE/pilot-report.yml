@@ -1,0 +1,53 @@
+name: Pilot result
+description: Report a redacted Cost Doctor installation or PR check result
+title: "[Pilot] "
+labels: ["pilot-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include source code, repository names, secrets, tokens, private keys, or personal data."
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation result
+      options: [Succeeded, Failed, Not attempted]
+    validations:
+      required: true
+  - type: dropdown
+    id: check
+    attributes:
+      label: Check result
+      options: [Success, Neutral, Error, Not created]
+    validations:
+      required: true
+  - type: dropdown
+    id: head
+    attributes:
+      label: Head SHA binding
+      options: [Matched, Mismatched, Unknown]
+    validations:
+      required: true
+  - type: input
+    id: signals
+    attributes:
+      label: Signal / confirmed / false-positive counts
+      placeholder: "signals=0, confirmed=0, false_positive=0"
+  - type: dropdown
+    id: reuse
+    attributes:
+      label: Would you use it again?
+      options: [Yes, No, Unsure]
+    validations:
+      required: true
+  - type: dropdown
+    id: uninstall
+    attributes:
+      label: Uninstall result
+      options: [Succeeded, Failed, Not attempted]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Redacted notes
+      description: Do not paste raw logs or confidential identifiers.
