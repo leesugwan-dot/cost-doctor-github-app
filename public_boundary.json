@@ -1,0 +1,20 @@
+{
+  "schema": "PUBLIC_PRIVATE_BOUNDARY_V3",
+  "status": "PUBLIC_PILOT_CANDIDATE",
+  "public_allowlist": [
+    "README.md", "app_contract.json", "PRIVACY_DRAFT.md", "SECURITY.md",
+    "PUBLICATION_GATES.md", "SUPPORT.md", "docs/QUICKSTART.md", "docs/REAL_RESULTS.md",
+    "docs/PILOT_FEEDBACK.md", "docs/TROUBLESHOOTING.md", "docs/UNINSTALL.md",
+    ".github/ISSUE_TEMPLATE/pilot-report.yml", "public_boundary.json"
+  ],
+  "forbidden_public_classes": [
+    "private_backend_source", "tests", "credentials", "secret_values",
+    "local_paths", "raw_repository_content", "telemetry_raw_evidence", "ledger"
+  ],
+  "analysis_core_private": true,
+  "github_live_e2e": true,
+  "github_live_scope": "TEMPORARY_ISOLATED_ACTUAL_GITHUB_E2E",
+  "clean_repository_install_tested": true,
+  "external_user_install_tested": false,
+  "production_authority": false
+}
