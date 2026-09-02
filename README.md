@@ -1,0 +1,90 @@
+# Cost Doctor GitHub App
+
+PR의 AI·모델 사용 비용 관련 코드 신호를 요약하고, 검증 가능한 사용량 Evidence가 있을 때만 관측된 절감액을 GitHub Check로 표시하는 비공개 GitHub App 후보입니다.
+
+> 상태: `PUBLIC_PILOT_CANDIDATE / APP_PRIVATE_UNTIL_FINAL_PUBLIC_GATE / PRODUCTION_AUTHORITY_FALSE`
+
+공개 문서에는 설치·권한·운영 설명만 있으며 비공개 분석 서비스와 테스트 코드는 포함하지 않습니다.
+
+## 30초 요약
+
+- 대상: 모델 호출 비용을 PR 단위로 확인하려는 저장소 운영자
+- 입력: 허용된 저장소의 `pull_request` 이벤트와 정확한 head commit
+- 확인: 모델 호출, 재시도, 캐시, 토큰 제한 관련 정적 코드 신호
+- 출력: 원문 코드·파일명·로컬 경로를 제외한 GitHub Check 요약
+- 절감액: 서명된 원본 사용량 Evidence와 승인된 측정 계약이 검증된 경우에만 표시하며 그 외에는 `UNKNOWN`
+
+[Quick Start](docs/QUICKSTART.md) · [실제 결과](docs/REAL_RESULTS.md) · [Pilot 결과 보고](docs/PILOT_FEEDBACK.md) · [문제 해결](docs/TROUBLESHOOTING.md) · [제거](docs/UNINSTALL.md) · [지원](SUPPORT.md)
+
+공개 허용 후 설치 페이지: [Cost Doctor Staging Pilot R2](https://github.com/apps/cost-doctor-staging-pilot-r2). 현재는 소유자에게만 `Configure`가 보이며 외부 `Install` 노출은 최종 공개 Gate에서 확인합니다.
+
+## 현재 검증 범위
+
+| 항목 | 상태 | 의미 |
+| --- | --- | --- |
+| 로컬 회귀검증 | `PASS (55/55)` | 저장된 R4 구현의 격리 재실행 |
+| 로컬 모의 GitHub 흐름 | `PASS` | 실제 네트워크가 아닌 가짜 전송 계층 검증 |
+| 실제 GitHub App 등록·설치 | `PASS (temporary isolated actual E2E)` | 현재 release의 등록·설치·서명·정확한 head SHA·Check readback 검증 |
+| clean test repository 첫 PR | `PASS (temporary isolated actual E2E)` | 공개 사용자 설치가 아닌 내부 격리 실증 |
+| 공개 pilot | `FINAL_GATE_PENDING` | 외부 사용자 설치·반복 사용 Evidence는 아직 없음 |
+| Production enforcement | `false` | merge 차단·Production 권한 없음 |
+| 실제 workload | `2/2 bounded PASS` | 가격 고정 API의 두 workload 결과만 유효하며 일반화 금지 |
+
+## 동작 방식
+
+```text
+PR 생성/갱신 → Webhook·저장소 범위 검증 → PR head SHA 재확인
+→ 정확한 commit을 비공개 임시공간에서 분석 → 요약 Check 생성·readback
+→ 임시 소스 삭제
+```
+
+Check 이름은 `Cost Doctor`입니다. 서명된 telemetry가 검증되면 결론은 `success`, 그렇지 않으면 `neutral`입니다. 이 구현은 `PASS / REVIEW / BLOCK` 판정기나 merge 차단기가 아닙니다.
+
+현재 규칙은 `MODEL_CALL`, `RETRY_LOOP`, `CACHE_SIGNAL`, `TOKEN_LIMIT` 네 종류입니다. 신호 발견만으로 비용 낭비나 절감효과를 확정하지 않습니다.
+
+## 최소 권한
+
+| GitHub App 권한 | 수준 | 용도 |
+| --- | --- | --- |
+| Pull requests | Read | PR과 정확한 head commit 확인 |
+| Contents | Read | 정확한 commit 압축본 읽기 |
+| Checks | Write | 요약 Check 생성·readback |
+
+이벤트는 `pull_request`, action은 `opened`, `reopened`, `synchronize`, `ready_for_review`로 제한합니다. 저장소 파일·PR·commit·issue·comment 수정 권한과 사용자 OAuth는 요구하지 않습니다.
+
+## Check 결과
+
+- `finding_count`: 탐지 신호 개수
+- `telemetry_verdict`: 사용량 Evidence 검증 결과
+- `savings_status`: `VERIFIED_OBSERVED` 또는 `UNKNOWN`
+- `verified_savings`: 검증됐을 때만 숫자, 그 외 `null`
+- `raw_source_output`: 항상 `false`
+
+`neutral`은 절감액을 입증할 telemetry가 없거나 검증되지 않았다는 뜻입니다. 실제 절감효과 PASS로 해석하면 안 됩니다.
+
+## 개인정보·보안
+
+- 원문 commit 압축본은 비공개 임시공간에서 읽고 정상 처리 경로에서 제거합니다.
+- Check에는 원문 코드, 파일명, 로컬 경로, 토큰, 비밀정보를 넣지 않습니다.
+- Webhook 원문 바이트를 HMAC-SHA256으로 먼저 검증합니다.
+- 비용 telemetry 신뢰 저장소는 선택 사항입니다. 구성하지 않으면 절감 상태는 `UNKNOWN`입니다.
+- 현재 외부 사용자 telemetry 수집 서비스는 연결돼 있지 않습니다. 운영주체·보존기간·삭제 절차는 공개 전에 확정해야 합니다.
+
+[개인정보 고지 초안](PRIVACY_DRAFT.md)과 [보안 경계](SECURITY.md)를 함께 확인하세요.
+
+## 제한사항
+
+- GitHub App + 비공개 단일 호스트 서비스 후보이며 GitHub Action이나 데스크톱 앱이 아닙니다.
+- hosted endpoint와 내부 actual E2E는 검증됐지만, 외부 사용자용 공개 설치 허용은 최종 공개 Gate 전입니다.
+- 탐지는 제한된 텍스트 확장자와 정적 규칙에 한정됩니다.
+- telemetry가 검증되지 않으면 절감액은 `UNKNOWN`입니다.
+- Check와 Required Status Check·Repository Ruleset의 merge 강제는 별개입니다.
+- 서로 다른 SQLite 장부를 쓰는 다중 호스트 배포는 지원하지 않습니다.
+
+## 실제 결과
+
+상태: `BOUNDED_2_WORKLOAD_EVIDENCE / EXTERNAL_PILOT_EVIDENCE_PENDING`
+
+동일 모델·동일 조건의 두 실제 API workload에서 품질 100 유지, False-PASS 악화 0, 가격표 기반 사용량 비용 21.0354%와 10.8970% 감소를 각각 관측했습니다. 청구서 영수증이 아닌 고정 가격표 기반 계산이며 모든 저장소에 일반화하지 않습니다. 상세 경계는 [실제 결과](docs/REAL_RESULTS.md)에 있습니다.
+
+[공개·운영 Gate](PUBLICATION_GATES.md) 전에는 설치 가능 제품이나 Production 완료로 표시하지 않습니다.
