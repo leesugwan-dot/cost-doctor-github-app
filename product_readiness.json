@@ -1,42 +1,56 @@
 {
-  "schema": "costdoctor.product-readiness.v1",
+  "schema": "costdoctor.product-readiness.v2",
   "current_public_product": {
     "public_repository_url_scan": "ENABLED",
-    "private_repository_scan": "PREPARED_NOT_PUBLICLY_ENABLED",
-    "verified_fix": "DESIGN_READY_NOT_ENABLED",
+    "private_repository_scan": "APPROVED_READ_ONLY_SELF_SCAN_TEMPLATE_EXTERNAL_ACTUAL_PENDING",
+    "verified_fix_write_feature": "DEFERRED_PUBLIC_REACTION_PENDING",
     "repository_write": "DISABLED",
-    "billing": "DISABLED",
-    "marketplace_submission": "NOT_SUBMITTED"
+    "billing": "DEFERRED_PUBLIC_REACTION_PENDING",
+    "ai_auto_fix_provider_mode": "DEFERRED_PUBLIC_REACTION_PENDING",
+    "measured_run_budget_policy": "APPROVED_PROVIDER_EXECUTION_NOT_ENABLED",
+    "marketplace_submission": "READY_FOR_OWNER_RELEASE_AND_PUBLISH"
+  },
+  "approved_decisions": {
+    "D1_license": "Apache-2.0 for public repository integration/source/docs; proprietary optimization core remains separate and undistributed",
+    "D2_operator_display": "CostDoctor",
+    "D2_support_url": "https://github.com/leesugwan-dot/cost-doctor-github-app/issues",
+    "D3_jurisdiction_default": "Republic of Korea",
+    "D3_external_telemetry_default": "OFF",
+    "D3_operator_personal_pc_customer_source_storage": false,
+    "D4_private_repository_default": "customer GitHub Actions self-scan with contents:read only",
+    "D6_marketplace": "publish free entry first; owner must accept Marketplace Developer Agreement if required and publish a release from root action.yml",
+    "D8_api_cost": "customer-owned provider account and GitHub Secret; explicit per-run max budget required"
+  },
+  "deferred_decisions": {
+    "D5_automatic_code_modification_and_pr": "DEFERRED_UNTIL_PUBLIC_REACTION",
+    "D7_monetization_model_and_price": "DEFERRED_UNTIL_PUBLIC_REACTION",
+    "D9_ai_auto_fix_provider_and_code_transfer": "DEFERRED_UNTIL_PUBLIC_REACTION"
   },
   "hard_boundaries": {
     "operator_personal_pc_for_customer_code": false,
     "public_scan_target_code_execution": false,
     "public_scan_target_repository_write": false,
+    "private_self_scan_repository_write": false,
     "static_signal_as_verified_savings": false,
     "automatic_merge": false,
-    "credentials_in_chat_or_public_issue": false
+    "direct_default_branch_overwrite": false,
+    "credentials_in_chat_or_public_issue": false,
+    "customer_api_secret_sent_to_operator": false,
+    "paid_provider_run_without_explicit_budget": false
   },
-  "prepared_without_business_decision": [
+  "implemented_preparation": [
     "read_only_private_repository_self_scan_workflow",
-    "verified_fix_permission_boundary",
-    "marketplace_listing_draft",
-    "billing_architecture_draft",
-    "operator_policy_checklist",
-    "machine_readable_public_scan_receipt_design"
+    "public_scan_sanitized_receipt_and_short_retention_artifact",
+    "root_github_action_metadata_for_marketplace",
+    "marketplace_listing_copy_and_policy_links",
+    "apache_2_0_license_and_notice",
+    "privacy_terms_operator_policy",
+    "per_run_budget_guard",
+    "measured_run_machine_readable_contract",
+    "verified_fix_permission_boundary_kept_disabled"
   ],
-  "user_decisions_required": [
-    "open_source_license",
-    "operator_identity_and_contact",
-    "final_privacy_terms_jurisdiction_retention",
-    "marketplace_submission",
-    "verified_fix_write_permission_scope",
-    "billing_price_refund_support_policy"
-  ],
-  "recommended_defaults": {
-    "license": "Apache-2.0 for the public integration layer while keeping proprietary optimization core separate",
-    "private_repo": "GitHub-hosted self-scan with contents:read only; no operator-side source storage",
-    "verified_fix": "two-stage opt-in; plan/test first, PR write only after explicit approval; never auto-merge",
-    "billing": "keep free diagnosis; charge only for evidence-backed Verified Fix or repeat monitoring after external value proof",
-    "marketplace": "publish free entry first after operator/privacy/terms fields are finalized"
-  }
+  "external_actions_remaining": [
+    "GitHub owner: open root action.yml, draft v1.0.0 release, accept Marketplace Developer Agreement if required, select publish-to-Marketplace and publish release with GitHub-required 2FA",
+    "actual external private-repository owner install/run for reproducibility evidence"
+  ]
 }
