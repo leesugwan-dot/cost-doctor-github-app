@@ -91,7 +91,7 @@ jobs:
           assert contract['privacy']['raw_source_in_public_result'] is False
           assert contract['claims']['actual_savings_verified_by_public_scan'] is False
           assert readiness['hard_boundaries']['operator_personal_pc_for_customer_code'] is False
-          assert readiness['hard_boundaries']['repository_write'] if False else True
+          assert readiness['hard_boundaries']['public_scan_target_repository_write'] is False
           assert 'contents: read' in private_workflow
           assert 'contents: write' not in private_workflow
           assert fix['hard_rules']['automatic_merge'] is False
