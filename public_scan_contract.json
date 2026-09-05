@@ -1,5 +1,5 @@
 {
-  "schema": "costdoctor.public-scan-contract.v2",
+  "schema": "costdoctor.public-scan-contract.v3",
   "status": "PUBLIC_BETA",
   "input": {
     "type": "public_github_repository_url",
@@ -18,7 +18,18 @@
   },
   "binding": {
     "default_branch_head_resolved_via_github_api": true,
-    "checkout_head_must_match": true
+    "checkout_head_must_match": true,
+    "costdoctor_commit_bound_in_receipt": true,
+    "scanner_report_hash_bound_in_receipt": true,
+    "receipt_sha256": true
+  },
+  "result": {
+    "public_issue_comment": true,
+    "github_step_summary": true,
+    "sanitized_artifact": true,
+    "artifact_retention_days": 1,
+    "artifact_files": ["result.md", "receipt.json"],
+    "completed_issue_lock_attempted": true
   },
   "privacy": {
     "raw_source_in_public_result": false,
