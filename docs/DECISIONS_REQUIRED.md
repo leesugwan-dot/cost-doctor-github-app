@@ -39,8 +39,12 @@
 ### D6. Marketplace 공개 — 승인
 
 - 무료 진단부터 Marketplace에 노출하는 방향 채택
-- 루트 `action.yml`, 설명, 라이선스, 개인정보, 약관, 지원문서 준비
-- GitHub 계정 소유자의 Marketplace 약관 동의/제출 버튼/심사 대응은 외부 UI 행위이므로 자동 우회하지 않음
+- 루트 `action.yml`, description/branding, Apache-2.0, 개인정보, 약관, 지원문서 준비
+- 실제 게시 직전 상태는 `READY_FOR_OWNER_RELEASE_AND_PUBLISH`
+- GitHub 계정 소유자가 루트 `action.yml`에서 Release 초안을 열고 `Publish this Action to the GitHub Marketplace`를 선택해야 함
+- GitHub가 요구하면 Marketplace Developer Agreement 동의가 필요
+- 첫 버전 권장: `v1.0.0`
+- Release 게시 시 GitHub가 요구하는 2단계 인증은 계정 소유자가 수행
 
 ### D8. 실제 API 측정 비용 원칙 — 승인
 
@@ -75,6 +79,6 @@
 
 결정은 끝났지만 기술적으로 대신할 수 없는 외부 행동은 다음입니다.
 
-1. GitHub Marketplace 소유자 약관/Listing UI 확인 및 실제 제출
+1. GitHub 계정 소유자가 Marketplace Developer Agreement가 요구되면 동의하고, `v1.0.0` Release에서 Marketplace 게시를 선택해 Publish
 2. 실제 외부 사용자의 Private Repository에서 Self-Scan 설치·실행 승인 및 재현성 검증
 3. D5/D7/D9 재검토는 사용자 반응이 쌓인 뒤 수행
