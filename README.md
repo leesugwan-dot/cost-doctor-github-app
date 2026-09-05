@@ -1,3 +1,14 @@
+<!-- ACTUAL_SCREEN_GUIDE_R1_START -->
+## 사진 보고 시작하기
+
+[5분 Quick Start — 시간 보장 아님](costdoctor-entry/docs/QUICKSTART_VISUAL.md) · [실제 화면 13장 / 14단계 가이드](costdoctor-entry/docs/SCREEN_GUIDE.md) · [FAQ](costdoctor-entry/docs/FAQ.md)
+
+아래는 기존 실제 GitHub 실행의 Summary입니다. 녹색 실행·신호 0건은 비용절감 PASS가 아닙니다. 실행·버전과 연결한 사진으로 설치, Actions, 보고서, 오류, 되돌리기를 안내합니다.
+
+![실제 GitHub Summary — 비용절감 UNKNOWN 유지](costdoctor-entry/docs/images/G10.jpg)
+
+<!-- ACTUAL_SCREEN_GUIDE_R1_END -->
+
 <!-- COSTDOCTOR_PUBLIC_ENTRY_START -->
 ## CostDoctor: App 없이 GitHub에서 시작
 
