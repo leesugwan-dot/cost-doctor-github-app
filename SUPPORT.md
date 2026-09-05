@@ -11,6 +11,15 @@
 - 진단 결과는 공개 Issue에 표시됩니다.
 - 현재 무료 베타는 사용자당 24시간 최대 5회입니다.
 - 정적 신호는 실제 비용·토큰 절감 검증이 아닙니다.
+- 정상 결과에는 대상 HEAD와 CostDoctor 실행 버전/진단 요약을 묶은 검증 영수증이 생성되며, 민감정보 없는 결과 Artifact는 현재 1일 보존합니다.
+
+## 비공개 저장소
+
+private repository 주소는 공개 진단 Issue에 넣지 마세요.
+
+[비공개 저장소 Self-Scan 안내](docs/PRIVATE_REPO_SELF_SCAN.md)를 사용하면 저장소 소유자의 GitHub Actions 안에서 읽기 전용으로 진단할 수 있도록 준비되어 있습니다. 운영자 개인 PC에 private source를 보내는 방식이 아닙니다.
+
+외부 사용자의 실제 private repository 설치 편의성은 아직 별도 actual-run 검증이 필요합니다.
 
 ## 오류·버그 보고
 

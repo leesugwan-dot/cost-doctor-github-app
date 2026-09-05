@@ -1,0 +1,42 @@
+{
+  "schema": "costdoctor.verified-fix-contract.v1",
+  "status": "DESIGN_READY_NOT_ENABLED",
+  "default_mode": "READ_ONLY_PLAN_AND_TEST",
+  "stages": [
+    {
+      "id": "diagnose",
+      "repository_write": false,
+      "user_approval_required": false
+    },
+    {
+      "id": "prepare_fix_in_isolated_workspace",
+      "repository_write": false,
+      "user_approval_required": false
+    },
+    {
+      "id": "before_after_and_quality_validation",
+      "repository_write": false,
+      "user_approval_required": false,
+      "external_cost_or_credentials_may_require_user_action": true
+    },
+    {
+      "id": "publish_branch_or_pull_request",
+      "repository_write": true,
+      "user_approval_required": true
+    },
+    {
+      "id": "merge",
+      "repository_write": true,
+      "automatic": false,
+      "user_approval_required": true
+    }
+  ],
+  "hard_rules": {
+    "direct_default_branch_overwrite": false,
+    "automatic_merge": false,
+    "claim_savings_without_before_after_evidence": false,
+    "quality_regression_accepted_as_success": false,
+    "rollback_required_for_applied_fix": true,
+    "secret_in_public_issue_or_report": false
+  }
+}

@@ -2,20 +2,26 @@ name: CostDoctor public scan self-test
 
 on:
   push:
-    branches: [main, costdoctor-public-ops-r3]
+    branches: [main]
     paths:
       - '.github/scripts/**'
       - '.github/ISSUE_TEMPLATE/public-scan.yml'
       - '.github/workflows/**'
-      - 'costdoctor-entry/entry/**'
+      - 'costdoctor-entry/**'
       - 'public_scan_contract.json'
+      - 'private_repo_selfscan_contract.json'
+      - 'product_readiness.json'
+      - 'verified_fix_contract.json'
   pull_request:
     paths:
       - '.github/scripts/**'
       - '.github/ISSUE_TEMPLATE/public-scan.yml'
       - '.github/workflows/**'
-      - 'costdoctor-entry/entry/**'
+      - 'costdoctor-entry/**'
       - 'public_scan_contract.json'
+      - 'private_repo_selfscan_contract.json'
+      - 'product_readiness.json'
+      - 'verified_fix_contract.json'
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
@@ -52,9 +58,12 @@ jobs:
           node --check costdoctor-entry/entry/cli.mjs
           node --check costdoctor-entry/entry/action.mjs
 
-      - name: Public boundary invariant checks
+      - name: Product boundary invariant checks
         run: |
           python3 -m json.tool public_scan_contract.json >/dev/null
+          python3 -m json.tool private_repo_selfscan_contract.json >/dev/null
+          python3 -m json.tool product_readiness.json >/dev/null
+          python3 -m json.tool verified_fix_contract.json >/dev/null
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -62,7 +71,11 @@ jobs:
           workflow = Path('.github/workflows/public-scan.yml').read_text(encoding='utf-8')
           script = Path('.github/scripts/public_scan.py').read_text(encoding='utf-8')
           form = Path('.github/ISSUE_TEMPLATE/public-scan.yml').read_text(encoding='utf-8')
+          private_workflow = Path('costdoctor-entry/private-repo-selfscan.yml').read_text(encoding='utf-8')
           contract = json.loads(Path('public_scan_contract.json').read_text(encoding='utf-8'))
+          private_contract = json.loads(Path('private_repo_selfscan_contract.json').read_text(encoding='utf-8'))
+          readiness = json.loads(Path('product_readiness.json').read_text(encoding='utf-8'))
+          fix = json.loads(Path('verified_fix_contract.json').read_text(encoding='utf-8'))
 
           assert 'contents: read' in workflow
           assert 'issues: write' in workflow
@@ -73,12 +86,24 @@ jobs:
           assert 'MAX_SCANS_PER_USER_24H = 5' in script
           assert 'GIT_CONFIG_NOSYSTEM' in script
           assert 'protocol.file.allow=never' in script
+          assert 'receipt_sha256' in script
+          assert 'lock_issue' in script
           assert '결과 언어 / Result language' in form
           assert contract['execution']['target_code_executed'] is False
           assert contract['execution']['operator_personal_pc_used'] is False
           assert contract['execution']['target_repository_write'] is False
           assert contract['privacy']['raw_source_in_public_result'] is False
           assert contract['claims']['actual_savings_verified_by_public_scan'] is False
+          assert private_contract['operator_personal_pc_used'] is False
+          assert private_contract['repository_permissions']['contents'] == 'read'
+          assert private_contract['repository_write'] is False
+          assert private_contract['automatic_merge'] is False
+          assert readiness['hard_boundaries']['operator_personal_pc_for_customer_code'] is False
+          assert readiness['hard_boundaries']['public_scan_target_repository_write'] is False
+          assert 'contents: read' in private_workflow
+          assert 'contents: write' not in private_workflow
+          assert fix['hard_rules']['automatic_merge'] is False
+          assert fix['hard_rules']['direct_default_branch_overwrite'] is False
           PY
 
       - name: Fresh scanner smoke test

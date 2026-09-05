@@ -1,0 +1,42 @@
+{
+  "schema": "costdoctor.product-readiness.v1",
+  "current_public_product": {
+    "public_repository_url_scan": "ENABLED",
+    "private_repository_scan": "PREPARED_NOT_PUBLICLY_ENABLED",
+    "verified_fix": "DESIGN_READY_NOT_ENABLED",
+    "repository_write": "DISABLED",
+    "billing": "DISABLED",
+    "marketplace_submission": "NOT_SUBMITTED"
+  },
+  "hard_boundaries": {
+    "operator_personal_pc_for_customer_code": false,
+    "public_scan_target_code_execution": false,
+    "public_scan_target_repository_write": false,
+    "static_signal_as_verified_savings": false,
+    "automatic_merge": false,
+    "credentials_in_chat_or_public_issue": false
+  },
+  "prepared_without_business_decision": [
+    "read_only_private_repository_self_scan_workflow",
+    "verified_fix_permission_boundary",
+    "marketplace_listing_draft",
+    "billing_architecture_draft",
+    "operator_policy_checklist",
+    "machine_readable_public_scan_receipt_design"
+  ],
+  "user_decisions_required": [
+    "open_source_license",
+    "operator_identity_and_contact",
+    "final_privacy_terms_jurisdiction_retention",
+    "marketplace_submission",
+    "verified_fix_write_permission_scope",
+    "billing_price_refund_support_policy"
+  ],
+  "recommended_defaults": {
+    "license": "Apache-2.0 for the public integration layer while keeping proprietary optimization core separate",
+    "private_repo": "GitHub-hosted self-scan with contents:read only; no operator-side source storage",
+    "verified_fix": "two-stage opt-in; plan/test first, PR write only after explicit approval; never auto-merge",
+    "billing": "keep free diagnosis; charge only for evidence-backed Verified Fix or repeat monitoring after external value proof",
+    "marketplace": "publish free entry first after operator/privacy/terms fields are finalized"
+  }
+}

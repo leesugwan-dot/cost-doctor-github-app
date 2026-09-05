@@ -1,0 +1,19 @@
+{
+  "schema": "costdoctor.private-repo-selfscan-contract.v1",
+  "status": "PREPARED_NOT_EXTERNALLY_VERIFIED",
+  "execution_location": "repository_owner_github_actions",
+  "operator_personal_pc_used": false,
+  "operator_backend_source_upload": false,
+  "target_code_executed": false,
+  "repository_permissions": {"contents": "read"},
+  "persist_checkout_credentials": false,
+  "submodules_expanded": false,
+  "git_lfs_expanded": false,
+  "repository_write": false,
+  "pull_request_write": false,
+  "automatic_merge": false,
+  "ai_model_calls": false,
+  "paid_api_required": false,
+  "artifact_retention_days": 1,
+  "actual_external_private_repository_tested": false
+}

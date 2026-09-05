@@ -1,0 +1,36 @@
+name: CostDoctor private repository self-scan
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  costdoctor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout this repository only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Run CostDoctor read-only static review
+        id: doctor
+        uses: leesugwan-dot/cost-doctor-github-app/costdoctor-entry@5b2cadf65e019af279464c073ee8fc28e5e8e60d
+        with:
+          repository: '.'
+
+      - name: Keep sanitized report briefly
+        if: ${{ always() && steps.doctor.outputs.report-directory != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: costdoctor-report
+          path: ${{ steps.doctor.outputs.report-directory }}/report.*
+          if-no-files-found: error
+          retention-days: 1
+          include-hidden-files: false

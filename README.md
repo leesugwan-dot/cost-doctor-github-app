@@ -1,16 +1,29 @@
 <!-- COSTDOCTOR_PUBLIC_URL_SCAN_START -->
-# CostDoctor 무료 공개 저장소 진단
+# CostDoctor 무료 GitHub 비용 진단
+
+[![Public scan self-test](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/workflows/public-scan-selftest.yml/badge.svg)](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/workflows/public-scan-selftest.yml)
+[![CodeQL security scan](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/workflows/codeql.yml/badge.svg)](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/workflows/codeql.yml)
+
+## 공개 저장소 — 가장 간단한 방법
 
 **GitHub 주소 하나만 넣으면 됩니다.** 공개 저장소를 GitHub-hosted runner에서 정적 분석하고 결과를 같은 GitHub 이슈에 자동으로 남깁니다.
 
 [**▶ 공개 저장소 무료 진단 시작**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)
 
-1. 위 링크를 엽니다.
+1. 링크를 엽니다.
 2. 자신의 **공개 GitHub 저장소 주소**를 붙여넣습니다.
-3. `Submit new issue`를 누릅니다.
-4. CostDoctor가 자동 분석한 뒤 결과 댓글을 남기고 요청을 닫습니다.
+3. 결과 언어를 고르고 `Submit new issue`를 누릅니다.
+4. CostDoctor가 자동 분석하고 결과·검증 영수증을 남긴 뒤 요청을 닫습니다.
 
-사용자의 프로젝트는 CostDoctor 운영자의 개인 PC로 보내지 않습니다. 대상 코드를 실행하지 않고, 표준 GitHub-hosted runner의 임시 작업공간에서 제한된 정적 분석만 수행합니다. 원문 코드·파일명·비밀정보는 결과 댓글에 포함하지 않습니다. 현재 무료 공개 진단은 **public repository 전용**이며 실제 호출 수·비용·토큰 절감·품질 개선을 증명하는 단계는 아닙니다.
+사용자의 프로젝트는 CostDoctor 운영자의 개인 PC로 보내지 않습니다. 대상 코드를 실행하지 않고 GitHub-hosted runner의 임시 작업공간에서 제한된 정적 분석만 수행합니다. 원문 코드·파일명·비밀정보는 공개 결과에 포함하지 않습니다. 실제 호출 수·비용·토큰 절감·품질 개선은 별도 Before/After Evidence가 없으면 `UNKNOWN`입니다.
+
+## 비공개 저장소 — 코드를 운영자에게 보내지 않는 Self-Scan
+
+private repository는 공개 URL 진단에 주소를 넣지 않습니다. 대신 저장소 소유자가 자신의 repository에 **읽기 전용 GitHub Actions workflow**를 설치해 자기 GitHub-hosted runner 안에서 실행할 수 있도록 준비했습니다.
+
+[**비공개 저장소 Self-Scan 안내**](docs/PRIVATE_REPO_SELF_SCAN.md) · [읽기 전용 workflow](costdoctor-entry/private-repo-selfscan.yml)
+
+이 경로도 CostDoctor 운영자의 개인 PC에 private source를 보내지 않으며, 기본 권한은 `contents: read`이고 자동 commit/push/PR/merge를 하지 않습니다. 외부 사용자의 실제 private repository 설치 편의성은 아직 별도 actual-run Evidence가 필요합니다.
 <!-- COSTDOCTOR_PUBLIC_URL_SCAN_END -->
 
 <!-- ACTUAL_SCREEN_GUIDE_R1_START -->

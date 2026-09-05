@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import hashlib
 import json
 import os
 import re
@@ -18,6 +19,7 @@ URL_HEADING = "### GitHub 저장소 주소"
 LANG_HEADING = "### 결과 언어 / Result language"
 CONFIRM_TEXT = "이 저장소가 공개 저장소이며 진단 결과가 공개 GitHub 이슈에 표시되는 것에 동의합니다."
 SUPPORTED_LANGUAGES = {"한국어": "ko", "English": "en"}
+RECEIPT_SCHEMA = "costdoctor.public-scan-receipt.v2"
 
 
 def api(method, url, token, payload=None):
@@ -90,6 +92,20 @@ def post_comment(repository, issue_number, token, text):
 
 def close_issue(repository, issue_number, token):
     api("PATCH", f"{API}/repos/{repository}/issues/{issue_number}", token, {"state": "closed", "state_reason": "completed"})
+
+
+def lock_issue(repository, issue_number, token):
+    api("PUT", f"{API}/repos/{repository}/issues/{issue_number}/lock", token, {"lock_reason": "resolved"})
+
+
+def close_and_lock(repository, issue_number, token):
+    close_issue(repository, issue_number, token)
+    try:
+        lock_issue(repository, issue_number, token)
+    except Exception:
+        # Locking is an operational hardening step. A completed scan result must not
+        # be turned into a false failure only because GitHub refused the lock call.
+        pass
 
 
 def run(cmd, *, cwd=None, env=None, timeout=240):
@@ -198,12 +214,69 @@ def top_findings(report, limit=4):
     return findings[:limit]
 
 
-def format_result(report, target_repo, meta, lang, issue_url, run_url):
+def canonical_sha256(value):
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def safe_tool_sha(value):
+    return value if isinstance(value, str) and re.fullmatch(r"[a-f0-9]{40}", value) else "UNKNOWN"
+
+
+def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, generated_at=None):
+    coverage = report.get("coverage") or {}
+    findings = [
+        {"rule": f.get("rule"), "signal_count": int(f.get("signal_count") or 0)}
+        for f in top_findings(report)
+    ]
+    core = {
+        "schema": RECEIPT_SCHEMA,
+        "generated_at_utc": generated_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "target": {
+            "repository": target_repo,
+            "default_branch": meta.get("default_branch"),
+            "head": meta.get("head"),
+            "primary_language": meta.get("language"),
+            "archived": bool(meta.get("archived")),
+            "fork": bool(meta.get("fork")),
+        },
+        "scan": {
+            "status": report.get("verdict", "UNKNOWN"),
+            "analyzed_files": int(coverage.get("analyzed_files") or 0),
+            "analyzed_bytes": int(coverage.get("analyzed_bytes") or 0),
+            "findings": findings,
+            "scanner_report_sha256": canonical_sha256(report),
+        },
+        "costdoctor": {"head": safe_tool_sha(tool_sha)},
+        "run": {"issue_url": issue_url, "actions_run_url": run_url},
+        "claims": {
+            "static_review_signals_only": True,
+            "actual_calls_measured": False,
+            "actual_savings_verified": False,
+            "quality_verified": False,
+        },
+        "privacy": {
+            "raw_source_in_public_result": False,
+            "filenames_in_public_result": False,
+            "credentials_requested": False,
+            "private_repository_content_supported": False,
+            "operator_personal_pc_used": False,
+        },
+    }
+    receipt = dict(core)
+    receipt["receipt_sha256"] = canonical_sha256(core)
+    return receipt
+
+
+def format_result(report, target_repo, meta, lang, issue_url, run_url, receipt=None):
     verdict = report.get("verdict", "UNKNOWN")
     coverage = report.get("coverage") or {}
     analyzed_files = int(coverage.get("analyzed_files") or 0)
     analyzed_bytes = int(coverage.get("analyzed_bytes") or 0)
     findings = top_findings(report)
+    receipt_id = (receipt or {}).get("receipt_sha256", "")[:16]
+    receipt_line_en = f"  \n**Receipt:** `{receipt_id}` (sanitized receipt is attached to the Actions run)" if receipt_id else ""
+    receipt_line_ko = f"  \n**검증 영수증:** `{receipt_id}` (민감정보 없는 receipt는 Actions 실행 Artifact에 포함)" if receipt_id else ""
 
     if lang == "en":
         labels = {
@@ -222,7 +295,7 @@ def format_result(report, target_repo, meta, lang, issue_url, run_url):
 **Status:** `{verdict}`  
 **Primary language reported by GitHub:** `{meta['language']}`  
 **Scanned:** {analyzed_files} files / {analyzed_bytes} bytes  
-**Snapshot:** exact default-branch HEAD verified against the GitHub API before analysis.
+**Snapshot:** exact default-branch HEAD verified against the GitHub API before analysis.{receipt_line_en}
 
 | Review signal | Static count |
 | --- | ---: |
@@ -250,7 +323,7 @@ Measure one high-signal path with the same goal/input/model/quality criteria bef
 **상태:** `{verdict}`  
 **GitHub 표시 주 언어:** `{meta['language']}`  
 **검사:** {analyzed_files}개 파일 / {analyzed_bytes} bytes  
-**스냅샷:** 분석 직전 GitHub API의 기본 브랜치 HEAD와 실제 checkout HEAD 일치를 확인했습니다.
+**스냅샷:** 분석 직전 GitHub API의 기본 브랜치 HEAD와 실제 checkout HEAD 일치를 확인했습니다.{receipt_line_ko}
 
 | 확인할 항목 | 정적 신호 수 |
 | --- | ---: |
@@ -268,6 +341,26 @@ Measure one high-signal path with the same goal/input/model/quality criteria bef
 
 [진단 요청]({issue_url}) · [GitHub Actions 실행 기록]({run_url})
 """
+
+
+def write_public_output(output_dir, markdown, receipt):
+    output_dir = Path(output_dir)
+    if output_dir.exists():
+        raise RuntimeError("PUBLIC_OUTPUT_EXISTS")
+    output_dir.mkdir(mode=0o700, parents=False)
+    (output_dir / "result.md").write_text(markdown, encoding="utf-8")
+    (output_dir / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def append_runner_file(env_name, text):
+    value = os.environ.get(env_name)
+    if not value:
+        raise RuntimeError("RUNNER_OUTPUT_MISSING")
+    path = Path(value)
+    if path.exists() and path.is_symlink():
+        raise RuntimeError("RUNNER_OUTPUT_INVALID")
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(text)
 
 
 def friendly_error(code, lang, retry_url):
@@ -317,6 +410,7 @@ def main():
     runner_temp = Path(os.environ["RUNNER_TEMP"]).resolve()
     server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     run_id = os.environ.get("GITHUB_RUN_ID", "")
+    tool_sha = safe_tool_sha(os.environ.get("GITHUB_SHA", ""))
     retry_url = f"{server}/{repository}/issues/new?template=public-scan.yml"
 
     event = json.loads(event_path.read_text(encoding="utf-8"))
@@ -344,17 +438,16 @@ def main():
         meta = get_target_metadata(target_repo, token)
 
         started = (
-            f"CostDoctor가 `{target_repo}` 공개 저장소의 안전한 정적 진단을 시작했습니다. "
-            "대상 코드는 실행하지 않습니다."
+            f"CostDoctor가 `{target_repo}` 공개 저장소의 안전한 정적 진단을 시작했습니다. 대상 코드는 실행하지 않습니다."
             if lang == "ko"
-            else f"CostDoctor started a safe static scan of public repository `{target_repo}`. "
-                 "Target-project code will not be executed."
+            else f"CostDoctor started a safe static scan of public repository `{target_repo}`. Target-project code will not be executed."
         )
         post_comment(repository, issue_number, token, started)
 
         target_dir = runner_temp / f"costdoctor-target-{issue_number}"
         result_dir = runner_temp / f"costdoctor-result-{issue_number}"
-        if target_dir.exists() or result_dir.exists():
+        public_output_dir = runner_temp / f"costdoctor-public-output-{issue_number}"
+        if target_dir.exists() or result_dir.exists() or public_output_dir.exists():
             raise RuntimeError("TEMP_PATH_EXISTS")
 
         clone_exact_snapshot(target_repo, meta["default_branch"], meta["head"], target_dir, runner_temp)
@@ -365,8 +458,16 @@ def main():
             timeout=120
         )
         report = load_report(result_dir)
-        post_comment(repository, issue_number, token, format_result(report, target_repo, meta, lang, issue_url, run_url))
-        close_issue(repository, issue_number, token)
+        receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha)
+        markdown = format_result(report, target_repo, meta, lang, issue_url, run_url, receipt=receipt)
+        write_public_output(public_output_dir, markdown, receipt)
+        append_runner_file("GITHUB_STEP_SUMMARY", markdown + "\n")
+        append_runner_file(
+            "GITHUB_OUTPUT",
+            f"public-output-dir={public_output_dir}\nreceipt-sha256={receipt['receipt_sha256']}\n"
+        )
+        post_comment(repository, issue_number, token, markdown)
+        close_and_lock(repository, issue_number, token)
         return 0
 
     except urllib.error.HTTPError as e:
@@ -382,7 +483,7 @@ def main():
 
     try:
         post_comment(repository, issue_number, token, friendly_error(code, lang, retry_url))
-        close_issue(repository, issue_number, token)
+        close_and_lock(repository, issue_number, token)
     except Exception:
         pass
     return 1
