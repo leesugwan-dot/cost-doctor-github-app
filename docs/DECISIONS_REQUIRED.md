@@ -1,97 +1,80 @@
-# CostDoctor — 사용자 결정이 필요한 항목
+# CostDoctor — 현재 결정 상태
 
-상태: `INTERVIEW_REQUIRED`
+상태: `APPROVED_WITH_THREE_DEFERRED_ITEMS`
 
-기술적으로 안전하게 준비할 수 있는 부분은 먼저 준비하고, 아래 항목만 운영자가 결정합니다.
+## 확정 완료
 
-## D1. 공개 라이선스
+### D1. 공개 라이선스 — 승인
 
-**추천:** 공개 GitHub 연동/진단 계층은 `Apache-2.0`, 상용 최적화 핵심은 별도 비공개로 분리.
+- 공개 GitHub 연동/진단 계층: **Apache-2.0**
+- 이 저장소에 포함되지 않은 상용 최적화 핵심: 별도 비공개 유지
+- `LICENSE`와 `NOTICE` 적용
 
-선택 후보:
+### D2. 운영자 표시·문의 채널 — 승인
 
-- A. Apache-2.0 — 추천
-- B. MIT — 가장 단순하지만 상업적 재사용도 매우 자유로움
-- C. GPL 계열 — 파생 공개 의무가 강해 기업 도입 장벽 가능
-- D. 공개 통합부만 별도 라이선스, 핵심은 비공개 — Apache-2.0과 조합 추천
+- 서비스 표시명: **CostDoctor**
+- 공식 일반 지원 URL: https://github.com/leesugwan-dot/cost-doctor-github-app/issues
+- 민감정보는 공개 Issue에 게시 금지
+- 유료화 전 법적으로 필요한 사업자/결제 표시는 별도 확정
 
-결정 전에는 LICENSE 파일을 확정하지 않습니다.
+### D3. 개인정보·이용조건 — 승인
 
-## D2. 운영자 표시·문의 채널
+- 기본 준거 기준: 대한민국
+- CostDoctor 자체 외부 telemetry: 기본 OFF
+- 고객 source의 운영자 개인 PC 저장: 금지
+- 공개 Repo는 GitHub-hosted runner에서 제한된 정적 분석
+- Private Repo는 사용자 GitHub Actions 내부 처리 우선
+- 무료 베타 SLA: 보장 없음 / best-effort
+- 공개 결과/Artifact 보존은 최소화하고 GitHub 정책을 따름
+- 현 정책은 `PRIVACY.md`, `TERMS.md`, `OPERATOR_POLICY.md`에 반영
 
-정식 서비스/Marketplace에서 표시할 항목입니다.
+### D4. Private Repository 기본 방식 — 승인
 
-필요 정보:
+- **사용자 private repo 안에서 GitHub Actions Self-Scan**을 기본으로 채택
+- 기본 권한: `contents: read`
+- 운영자 PC/서버로 원문 소스 전송·영속 저장하지 않음
+- 자동 쓰기 없음
+- 실제 외부 private repo 소유자의 설치/실행 검증은 해당 소유자 승인 후 진행
 
-- 서비스 운영자 표시명
-- 공식 문의 이메일 또는 지원 URL
-- 사업자 정보를 지금 공개할지, 유료화 시점에 공개할지
+### D6. Marketplace 공개 — 승인
 
-**추천:** 무료 베타 단계에서는 서비스명 + 전용 지원 이메일을 기본 공개하고, 법적으로 필수인 사업자 표시는 유료화/정식 약관 시점에 관할 기준으로 확정.
+- 무료 진단부터 Marketplace에 노출하는 방향 채택
+- 루트 `action.yml`, 설명, 라이선스, 개인정보, 약관, 지원문서 준비
+- GitHub 계정 소유자의 Marketplace 약관 동의/제출 버튼/심사 대응은 외부 UI 행위이므로 자동 우회하지 않음
 
-## D3. 개인정보·이용조건
+### D8. 실제 API 측정 비용 원칙 — 승인
 
-결정 필요:
+- 고객 자신의 API 계정 사용
+- Key는 고객 GitHub Secret에 저장
+- 운영자에게 Key 전달 금지
+- 작업별 Provider/모델/최대 지출한도 명시적 승인 필수
+- 가격/사용량 불명확 또는 승인한도 초과 가능 시 fail-closed
+- `.github/scripts/budget_guard.py`와 `measured_run_contract.json`으로 기본 경계 구현
 
-- 기본 보존정책
-- 삭제 요청 채널
-- 적용 관할/언어
-- 무료 베타 면책·지원 범위
+## 반응을 본 뒤 결정할 보류 항목
 
-**추천:** CostDoctor 자체 외부 telemetry는 0 유지, 가능한 결과는 사용자 GitHub에 보관, 운영자 서버 영속 저장 최소화. private code 원문 보관 금지 원칙 유지.
+### D5. 자동 수정 권한 — 보류
 
-## D4. Private Repository 기본 방식
+자동 코드 수정/branch/PR 기능은 **공개 예정 후보**로 설계와 안전경계만 유지합니다. 현재 일반 사용자 기능으로 활성화하지 않습니다.
 
-선택 후보:
+계속 유지할 안전경계:
 
-- A. 사용자 private repo 안에서 GitHub Actions Self-Scan — **추천**
-- B. CostDoctor GitHub App에 `contents:read` 승인 후 원격 서비스에서 분석
-- C. 둘 다 제공
+- 기본 branch 직접 overwrite 금지
+- 자동 merge 금지
+- 향후 활성화 시 실제 repository write 전 명시적 승인
 
-**추천:** A를 기본. 코드가 운영자 환경으로 이동하지 않아 신뢰 경계가 가장 단순합니다. App 방식은 편의성이 실제로 필요하다는 외부 Evidence가 나온 뒤 추가.
+### D7. 유료화 — 보류
 
-## D5. Verified Fix 쓰기 권한
+무료 진단 반응과 외부 가치 Evidence를 본 뒤 결정합니다. 현재 가격·과금·환불정책을 확정하지 않고 결제 기능도 활성화하지 않습니다.
 
-선택 후보:
+### D9. AI 자동수정 실행방식 — 보류
 
-- A. 진단/수정안/테스트는 자동, PR 게시만 사용자 승인 — **추천**
-- B. 승인 후 PR까지 자동, merge는 사용자
-- C. 승인 후 merge까지 자동
+외부 AI Provider 사용, 고객 코드 전송 범위, Provider 선택방식은 반응을 본 뒤 결정합니다. 현재 외부 AI를 이용한 고객 코드 자동수정 기능으로 활성화하지 않습니다.
 
-**추천:** A 또는 B. 자동 merge는 기본 금지.
+## 지금 남은 외부 행동
 
-권장 실제 경계는 `새 branch + PR`, 기본 branch 직접 overwrite 금지입니다.
+결정은 끝났지만 기술적으로 대신할 수 없는 외부 행동은 다음입니다.
 
-## D6. Marketplace 공개
-
-**추천:** 무료 진단으로 먼저 등록. 유료 기능은 나중에 추가.
-
-결정 필요:
-
-- Marketplace 제출을 지금 진행할지
-- 최종 설명/로고/스크린샷 승인
-- 지원/개인정보/이용조건 링크 확정
-
-## D7. 유료화 방식
-
-선택 후보:
-
-- A. Verified Fix 건별 과금 — **초기 추천**
-- B. 월 구독
-- C. 절감액 연동 성과형
-- D. 무료만 유지
-
-**추천:** 외부 가치 Evidence가 쌓이기 전까지 가격 숫자는 고정하지 않고, 첫 유료 모델은 건별 Verified Fix. 반복 사용이 확인되면 구독 추가.
-
-## D8. 실제 유료 측정 시 API 비용
-
-**추천:** 고객 자신의 API 계정/Secret을 고객 GitHub에서 사용하고, CostDoctor는 비밀키를 받지 않는 구조.
-
-결정 필요:
-
-- 고객 부담 원칙 여부
-- 작업별 지출 상한 승인 방식
-
-## 권장 답변 형식
-
-`D1 A+D / D2 [표시명], [문의채널] / D3 추천안 승인 / D4 A / D5 B / D6 지금 진행 / D7 A / D8 고객 부담+실행 전 한도 승인`
+1. GitHub Marketplace 소유자 약관/Listing UI 확인 및 실제 제출
+2. 실제 외부 사용자의 Private Repository에서 Self-Scan 설치·실행 승인 및 재현성 검증
+3. D5/D7/D9 재검토는 사용자 반응이 쌓인 뒤 수행
