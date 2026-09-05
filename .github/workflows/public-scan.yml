@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: costdoctor-public-${{ github.actor }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   scan:

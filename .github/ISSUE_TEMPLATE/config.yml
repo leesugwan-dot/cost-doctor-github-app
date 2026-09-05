@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: CostDoctor 무료 공개 저장소 진단 / Free public scan
+    url: https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml
+    about: 공개 GitHub 저장소 주소 하나로 무료 정적 진단을 시작합니다.
+  - name: 사용법 / Usage guide
+    url: https://github.com/leesugwan-dot/cost-doctor-github-app/blob/main/docs/PUBLIC_SCAN.md
+    about: 공개 진단의 범위, 보안경계, 제한사항을 확인합니다.
