@@ -5,23 +5,37 @@ on:
     branches: [main]
     paths:
       - '.github/scripts/**'
-      - '.github/ISSUE_TEMPLATE/public-scan.yml'
+      - '.github/ISSUE_TEMPLATE/**'
       - '.github/workflows/**'
       - 'costdoctor-entry/**'
+      - 'action.yml'
+      - 'LICENSE'
+      - 'NOTICE'
       - 'public_scan_contract.json'
       - 'private_repo_selfscan_contract.json'
       - 'product_readiness.json'
       - 'verified_fix_contract.json'
+      - 'measured_run_contract.json'
+      - 'PRIVACY.md'
+      - 'TERMS.md'
+      - 'OPERATOR_POLICY.md'
   pull_request:
     paths:
       - '.github/scripts/**'
-      - '.github/ISSUE_TEMPLATE/public-scan.yml'
+      - '.github/ISSUE_TEMPLATE/**'
       - '.github/workflows/**'
       - 'costdoctor-entry/**'
+      - 'action.yml'
+      - 'LICENSE'
+      - 'NOTICE'
       - 'public_scan_contract.json'
       - 'private_repo_selfscan_contract.json'
       - 'product_readiness.json'
       - 'verified_fix_contract.json'
+      - 'measured_run_contract.json'
+      - 'PRIVACY.md'
+      - 'TERMS.md'
+      - 'OPERATOR_POLICY.md'
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
@@ -50,7 +64,9 @@ jobs:
           package-manager-cache: false
 
       - name: Python unit tests
-        run: python3 .github/scripts/test_public_scan.py
+        run: |
+          python3 .github/scripts/test_public_scan.py
+          python3 .github/scripts/test_budget_guard.py
 
       - name: Node syntax checks
         run: |
@@ -64,6 +80,7 @@ jobs:
           python3 -m json.tool private_repo_selfscan_contract.json >/dev/null
           python3 -m json.tool product_readiness.json >/dev/null
           python3 -m json.tool verified_fix_contract.json >/dev/null
+          python3 -m json.tool measured_run_contract.json >/dev/null
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -72,10 +89,14 @@ jobs:
           script = Path('.github/scripts/public_scan.py').read_text(encoding='utf-8')
           form = Path('.github/ISSUE_TEMPLATE/public-scan.yml').read_text(encoding='utf-8')
           private_workflow = Path('costdoctor-entry/private-repo-selfscan.yml').read_text(encoding='utf-8')
+          root_action = Path('action.yml').read_text(encoding='utf-8')
+          license_text = Path('LICENSE').read_text(encoding='utf-8')
+          notice = Path('NOTICE').read_text(encoding='utf-8')
           contract = json.loads(Path('public_scan_contract.json').read_text(encoding='utf-8'))
           private_contract = json.loads(Path('private_repo_selfscan_contract.json').read_text(encoding='utf-8'))
           readiness = json.loads(Path('product_readiness.json').read_text(encoding='utf-8'))
           fix = json.loads(Path('verified_fix_contract.json').read_text(encoding='utf-8'))
+          measured = json.loads(Path('measured_run_contract.json').read_text(encoding='utf-8'))
 
           assert 'contents: read' in workflow
           assert 'issues: write' in workflow
@@ -100,11 +121,33 @@ jobs:
           assert private_contract['automatic_merge'] is False
           assert readiness['hard_boundaries']['operator_personal_pc_for_customer_code'] is False
           assert readiness['hard_boundaries']['public_scan_target_repository_write'] is False
+          assert readiness['deferred_decisions']['D5_automatic_code_modification_and_pr'] == 'DEFERRED_UNTIL_PUBLIC_REACTION'
+          assert readiness['deferred_decisions']['D7_monetization_model_and_price'] == 'DEFERRED_UNTIL_PUBLIC_REACTION'
+          assert readiness['deferred_decisions']['D9_ai_auto_fix_provider_and_code_transfer'] == 'DEFERRED_UNTIL_PUBLIC_REACTION'
           assert 'contents: read' in private_workflow
           assert 'contents: write' not in private_workflow
           assert fix['hard_rules']['automatic_merge'] is False
           assert fix['hard_rules']['direct_default_branch_overwrite'] is False
+          assert measured['customer_controls']['operator_receives_secret'] is False
+          assert measured['customer_controls']['per_run_budget_approval_required'] is True
+          assert measured['budget_guard']['fail_closed'] is True
+          assert measured['deferred']['automatic_ai_code_modification'] is True
+          assert 'Apache License' in license_text and 'Version 2.0' in license_text
+          assert 'Proprietary optimization engines' in notice
+          assert 'using: node24' in root_action
+          assert 'main: costdoctor-entry/entry/action.mjs' in root_action
+          assert 'branding:' in root_action
           PY
+
+      - name: Budget guard smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/budget_guard.py --limit-usd 5 --spent-usd 1 --next-max-usd 2 | grep 'ALLOW_WITHIN_APPROVED_BUDGET'
+          if python3 .github/scripts/budget_guard.py --limit-usd 5 --spent-usd 4.5 --next-max-usd 1; then
+            echo 'budget guard should have blocked' >&2
+            exit 1
+          fi
 
       - name: Fresh scanner smoke test
         shell: bash
