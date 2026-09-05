@@ -1,0 +1,76 @@
+name: CostDoctor public scan self-test
+
+on:
+  push:
+    branches: [main, costdoctor-public-hardening-r2]
+    paths:
+      - '.github/scripts/public_scan.py'
+      - '.github/scripts/test_public_scan.py'
+      - '.github/ISSUE_TEMPLATE/public-scan.yml'
+      - '.github/workflows/public-scan.yml'
+      - '.github/workflows/public-scan-selftest.yml'
+      - 'costdoctor-entry/entry/**'
+  pull_request:
+    paths:
+      - '.github/scripts/public_scan.py'
+      - '.github/scripts/test_public_scan.py'
+      - '.github/ISSUE_TEMPLATE/public-scan.yml'
+      - '.github/workflows/public-scan.yml'
+      - '.github/workflows/public-scan-selftest.yml'
+      - 'costdoctor-entry/entry/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Use fixed Node major
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          check-latest: false
+          package-manager-cache: false
+
+      - name: Python unit tests
+        run: python3 .github/scripts/test_public_scan.py
+
+      - name: Node syntax checks
+        run: |
+          node --check costdoctor-entry/entry/scan.mjs
+          node --check costdoctor-entry/entry/cli.mjs
+          node --check costdoctor-entry/entry/action.mjs
+
+      - name: Fresh scanner smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="$RUNNER_TEMP/costdoctor-fixture"
+          out="$RUNNER_TEMP/costdoctor-out"
+          mkdir -p "$fixture"
+          cat > "$fixture/sample.py" <<'PY'
+          def f(client):
+              return client.chat()
+          PY
+          node costdoctor-entry/entry/cli.mjs --repo "$fixture" --output "$out"
+          test -s "$out/report.json"
+          test -s "$out/report.md"
+          python3 - "$out/report.json" <<'PY'
+          import json, sys
+          data=json.load(open(sys.argv[1], encoding='utf-8'))
+          assert data['verdict'] == 'SCAN_COMPLETE'
+          assert data['privacy']['raw_source_output'] is False
+          assert data['privacy']['filenames_output'] is False
+          assert any(x['rule']=='MODEL_CALL' and x['signal_count'] >= 1 for x in data['findings'])
+          PY
