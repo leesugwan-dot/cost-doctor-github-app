@@ -1,0 +1,30 @@
+{
+  "schema": "costdoctor.measured-run.v1",
+  "status": "POLICY_APPROVED_PROVIDER_INTEGRATION_NOT_ENABLED",
+  "customer_controls": {
+    "api_account_owner": "customer",
+    "secret_location": "customer_github_secret",
+    "operator_receives_secret": false,
+    "per_run_budget_approval_required": true,
+    "currency": "USD",
+    "provider_and_model_must_be_declared": true
+  },
+  "budget_guard": {
+    "fail_closed": true,
+    "approved_limit_must_be_positive": true,
+    "projected_spend_must_not_exceed_limit": true,
+    "unpriced_or_unknown_usage": "BLOCK",
+    "guard_implementation": ".github/scripts/budget_guard.py"
+  },
+  "evidence": {
+    "before_after_same_goal_required": true,
+    "quality_or_completion_must_not_degrade": true,
+    "static_signals_are_not_savings": true,
+    "verified_savings_without_actual_usage_evidence": false
+  },
+  "deferred": {
+    "automatic_ai_code_modification": true,
+    "provider_specific_execution": true,
+    "billing_and_customer_charging": true
+  }
+}
