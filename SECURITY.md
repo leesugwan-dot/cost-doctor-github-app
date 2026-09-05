@@ -17,8 +17,29 @@
 - 대상 저장소에는 commit, push, PR, issue, 파일 수정 등 쓰기를 하지 않습니다.
 - 공개 결과에는 원문 코드, 파일명, 비밀키, API Key, private repository 내용을 포함하지 않습니다.
 - 분석 실패·시간 초과·HEAD 불일치 시 부분 결과를 성공으로 승격하지 않습니다.
+- 성공 결과에는 대상 HEAD, CostDoctor 실행 버전, 정적 진단 요약을 해시로 묶은 **sanitized receipt**를 생성합니다.
+- 성공 결과 Artifact는 `result.md`와 `receipt.json`만 담고 현재 1일 보존합니다.
+- 완료된 진단 Issue는 결과 보존·후속 스팸 감소를 위해 닫은 뒤 lock을 시도합니다. lock 실패 자체로 정상 진단을 거짓 실패로 바꾸지는 않습니다.
 
 공개 요청과 결과 Issue, GitHub Actions 기록은 GitHub의 공개 저장소 및 보존 정책의 적용을 받습니다.
+
+## 비공개 저장소 Self-Scan
+
+private repository는 공개 URL 진단에서 읽지 않습니다. 준비된 Self-Scan 방식은 저장소 소유자의 GitHub Actions 안에서만 실행합니다.
+
+- workflow 권한은 `contents: read`
+- checkout credential 영속화 금지
+- submodule/LFS 자동 확장 금지
+- 대상 프로젝트 코드 미실행
+- 자동 commit/push/PR/merge 없음
+- CostDoctor 운영자의 개인 PC나 별도 분석 서버로 private source 업로드 없음
+- 결과/로그 접근은 해당 private repository의 GitHub 권한 적용
+
+외부 사용자의 실제 private repository에서 actual-run 검증 전에는 이 경로를 외부 검증 완료로 표시하지 않습니다.
+
+## Verified Fix 준비 경계
+
+자동수정 기능을 공개할 경우에도 진단·수정안 생성·테스트·Before/After 검증은 repository 쓰기 없이 먼저 수행하는 방향을 기본으로 합니다. 실제 branch/PR 게시에는 사용자 승인과 최소 쓰기 권한이 필요하며 **자동 merge는 기본 금지**합니다.
 
 ## 기존 GitHub App 후보 경계
 
