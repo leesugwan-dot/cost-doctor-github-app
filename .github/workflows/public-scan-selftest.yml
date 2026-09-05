@@ -2,7 +2,7 @@ name: CostDoctor public scan self-test
 
 on:
   push:
-    branches: [main, costdoctor-public-hardening-r2]
+    branches: [main, costdoctor-public-ops-r3]
     paths:
       - '.github/scripts/public_scan.py'
       - '.github/scripts/test_public_scan.py'
@@ -18,6 +18,8 @@ on:
       - '.github/workflows/public-scan.yml'
       - '.github/workflows/public-scan-selftest.yml'
       - 'costdoctor-entry/entry/**'
+  schedule:
+    - cron: '17 3 * * 1'
   workflow_dispatch:
 
 permissions:
