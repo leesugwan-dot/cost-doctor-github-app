@@ -16,6 +16,7 @@ on:
       - 'product_readiness.json'
       - 'verified_fix_contract.json'
       - 'measured_run_contract.json'
+      - 'marketplace_status.json'
       - 'PRIVACY.md'
       - 'TERMS.md'
       - 'OPERATOR_POLICY.md'
@@ -33,6 +34,7 @@ on:
       - 'product_readiness.json'
       - 'verified_fix_contract.json'
       - 'measured_run_contract.json'
+      - 'marketplace_status.json'
       - 'PRIVACY.md'
       - 'TERMS.md'
       - 'OPERATOR_POLICY.md'
@@ -81,6 +83,7 @@ jobs:
           python3 -m json.tool product_readiness.json >/dev/null
           python3 -m json.tool verified_fix_contract.json >/dev/null
           python3 -m json.tool measured_run_contract.json >/dev/null
+          python3 -m json.tool marketplace_status.json >/dev/null
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -92,11 +95,14 @@ jobs:
           root_action = Path('action.yml').read_text(encoding='utf-8')
           license_text = Path('LICENSE').read_text(encoding='utf-8')
           notice = Path('NOTICE').read_text(encoding='utf-8')
+          privacy = Path('PRIVACY.md').read_text(encoding='utf-8')
+          terms = Path('TERMS.md').read_text(encoding='utf-8')
           contract = json.loads(Path('public_scan_contract.json').read_text(encoding='utf-8'))
           private_contract = json.loads(Path('private_repo_selfscan_contract.json').read_text(encoding='utf-8'))
           readiness = json.loads(Path('product_readiness.json').read_text(encoding='utf-8'))
           fix = json.loads(Path('verified_fix_contract.json').read_text(encoding='utf-8'))
           measured = json.loads(Path('measured_run_contract.json').read_text(encoding='utf-8'))
+          marketplace = json.loads(Path('marketplace_status.json').read_text(encoding='utf-8'))
 
           assert 'contents: read' in workflow
           assert 'issues: write' in workflow
@@ -132,11 +138,16 @@ jobs:
           assert measured['customer_controls']['per_run_budget_approval_required'] is True
           assert measured['budget_guard']['fail_closed'] is True
           assert measured['deferred']['automatic_ai_code_modification'] is True
+          assert marketplace['status'] == 'READY_FOR_OWNER_UI_SUBMISSION'
+          assert marketplace['listing_mode'] == 'FREE_ENTRY_FIRST'
+          assert 'automatic_code_modification_or_pr' in marketplace['deferred_features_not_to_advertise']
           assert 'Apache License' in license_text and 'Version 2.0' in license_text
           assert 'Proprietary optimization engines' in notice
           assert 'using: node24' in root_action
           assert 'main: costdoctor-entry/entry/action.mjs' in root_action
           assert 'branding:' in root_action
+          assert '운영자의 개인 PC' in privacy
+          assert '유료화 방식과 가격은 확정하지 않았습니다' in terms
           PY
 
       - name: Budget guard smoke test
