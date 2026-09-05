@@ -1,79 +1,69 @@
-# GitHub Marketplace 공개 준비 초안
+# GitHub Marketplace 공개 문구
 
-상태: `DRAFT_READY / NOT_SUBMITTED`
+상태: `CURRENT_FREE_LISTING_COPY / OWNER_RELEASE_PENDING`
 
-## 추천 공개 형태
+## 공개 형태
 
-1차 Marketplace 진입은 **무료 CostDoctor 진단**으로 시작합니다. 유료 결제는 외부 사용성·가치 Evidence가 쌓인 뒤 별도로 추가합니다.
+1차 Marketplace 진입은 **무료 CostDoctor Repository Review**로 시작합니다. 자동 코드 수정, 유료화, 외부 AI Provider 기반 자동수정은 사용자 반응을 본 뒤 결정하므로 현재 Listing에서 제공 기능으로 표시하지 않습니다.
 
 ## 이름
 
-**CostDoctor**
+**CostDoctor Repository Review**
 
-## 짧은 설명 초안
+## 짧은 설명
 
-> Find AI/LLM cost-review signals in a GitHub repository without executing the target project. Public URL scan is free; private repositories can self-scan in their own GitHub Actions runner.
+> Read-only static review for AI/model cost-related repository signals. No API key and no verified-savings claim from static signals.
 
 한국어 설명:
 
-> GitHub 프로젝트에서 AI·LLM 비용 검토 후보를 찾는 무료 정적 진단 도구입니다. 대상 프로젝트를 실행하지 않으며 공개 저장소는 링크 하나로, 비공개 저장소는 해당 저장소의 GitHub Actions 안에서 Self-Scan하도록 설계합니다.
+> GitHub 프로젝트에서 AI·모델 비용 검토 신호를 찾는 읽기 전용 정적 진단 도구입니다. 대상 프로젝트를 실행하지 않으며 정적 신호만으로 실제 절감액을 주장하지 않습니다.
 
 ## 핵심 장점
 
 - 공개 저장소: GitHub 주소 하나로 무료 진단
-- private repo: 운영자 PC로 코드를 보내지 않는 Self-Scan 준비
+- Private Repository: 운영자 PC로 코드를 보내지 않는 사용자 GitHub Actions Self-Scan 기본
 - 대상 프로젝트 코드 미실행
+- 공개 URL 진단 대상 저장소 자동 write 없음
 - 정적 신호를 실제 절감액으로 과장하지 않음
 - GitHub-hosted runner 중심
-- 결과에 원문 코드·파일명·비밀정보 미포함
-- 최소권한 우선
+- 공개 결과에 원문 코드·파일명·비밀정보 미포함
+- Private Self-Scan 기본 권한 `contents: read`
+- Apache-2.0 공개 통합 계층
 
-## 추천 카테고리/검색어 초안
+## 검색어 참고
 
-- Developer tools
-- Code quality
-- AI / LLM
-- Cost optimization
-- Token optimization
+- AI cost
+- LLM cost
+- token optimization
+- repository review
 - GitHub Actions
+- cost optimization
 
-실제 Marketplace가 허용하는 카테고리 목록에 맞춰 제출 시 최종 선택합니다.
+Marketplace 실제 카테고리는 Release UI에 표시되는 현재 허용 목록에서 기능과 가장 가까운 항목을 소유자가 선택합니다.
 
-## 무료 플랜 초안
-
-**Free Diagnosis**
+## 무료 범위
 
 - 공개 저장소 URL 정적 진단
 - 한국어 / English 결과
+- sanitized 검증 영수증
 - 실제 비용·토큰 절감액은 측정 Evidence가 없으면 `UNKNOWN`
-- private repo Self-Scan은 GitHub Actions 설치형으로 제공 가능
+- Private Repository read-only Self-Scan template
 
-## 추후 유료 후보
+## 현재 보류 — Listing에 광고하지 않음
 
-- Verified Fix
-- Before/After 측정
-- 품질/회귀검증
-- 독립 검증 Evidence
-- 반복 모니터링
+- 자동 코드 수정/branch/PR 공개 기능
+- 유료 Verified Fix 및 가격
+- 외부 AI Provider 기반 자동수정/코드 전송
 
-유료 항목은 가격·환불·지원정책이 확정되기 전 Marketplace에 가격으로 표시하지 않습니다.
+## 게시 준비 링크
 
-## 제출 전 사람 결정 필요
+- License: `LICENSE`
+- Privacy: `PRIVACY.md`
+- Terms: `TERMS.md`
+- Support: `SUPPORT.md`
+- Security: `SECURITY.md`
+- Marketplace 단계: `docs/MARKETPLACE_READY.md`
 
-- 공개 라이선스
-- 운영자/사업자 표시명
-- 공식 문의 이메일 또는 지원 URL
-- 최종 개인정보처리방침 URL
-- 최종 이용약관 URL
-- 실제 Marketplace 카테고리
-- Marketplace 제출 승인
+## 마지막 외부 단계
 
-## 제출 전 actual 확인
-
-- 외부 계정에서 무료 진단 진입 가능
-- 외부 사용자의 첫 결과까지 시간 측정
-- 모바일/데스크톱 사용성
-- private Self-Scan을 공개할 경우 실제 외부 private repo actual-run
-- 개인정보/지원 링크가 실제로 열림
-
-이 문서는 제출 준비용이며 Marketplace 등록 완료를 의미하지 않습니다.
+저장소 소유자가 루트 `action.yml`에서 Release 초안을 열고, GitHub Marketplace 게시를 선택하고, 필요 시 Developer Agreement에 동의한 뒤 `v1.0.0` Release를 게시합니다.
