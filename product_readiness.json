@@ -8,7 +8,7 @@
     "billing": "DEFERRED_PUBLIC_REACTION_PENDING",
     "ai_auto_fix_provider_mode": "DEFERRED_PUBLIC_REACTION_PENDING",
     "measured_run_budget_policy": "APPROVED_PROVIDER_EXECUTION_NOT_ENABLED",
-    "marketplace_submission": "READY_FOR_OWNER_UI_SUBMISSION"
+    "marketplace_submission": "READY_FOR_OWNER_RELEASE_AND_PUBLISH"
   },
   "approved_decisions": {
     "D1_license": "Apache-2.0 for public repository integration/source/docs; proprietary optimization core remains separate and undistributed",
@@ -18,7 +18,7 @@
     "D3_external_telemetry_default": "OFF",
     "D3_operator_personal_pc_customer_source_storage": false,
     "D4_private_repository_default": "customer GitHub Actions self-scan with contents:read only",
-    "D6_marketplace": "publish free entry first; owner UI/terms acceptance remains external action",
+    "D6_marketplace": "publish free entry first; owner must accept Marketplace Developer Agreement if required and publish a release from root action.yml",
     "D8_api_cost": "customer-owned provider account and GitHub Secret; explicit per-run max budget required"
   },
   "deferred_decisions": {
@@ -50,7 +50,7 @@
     "verified_fix_permission_boundary_kept_disabled"
   ],
   "external_actions_remaining": [
-    "GitHub Marketplace owner terms/listing UI submission and any GitHub review",
+    "GitHub owner: open root action.yml, draft v1.0.0 release, accept Marketplace Developer Agreement if required, select publish-to-Marketplace and publish release with GitHub-required 2FA",
     "actual external private-repository owner install/run for reproducibility evidence"
   ]
 }
