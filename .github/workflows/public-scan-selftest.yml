@@ -2,22 +2,22 @@ name: CostDoctor public scan self-test
 
 on:
   push:
-    branches: [main, costdoctor-public-hardening-r2]
+    branches: [main, costdoctor-public-ops-r3]
     paths:
-      - '.github/scripts/public_scan.py'
-      - '.github/scripts/test_public_scan.py'
+      - '.github/scripts/**'
       - '.github/ISSUE_TEMPLATE/public-scan.yml'
-      - '.github/workflows/public-scan.yml'
-      - '.github/workflows/public-scan-selftest.yml'
+      - '.github/workflows/**'
       - 'costdoctor-entry/entry/**'
+      - 'public_scan_contract.json'
   pull_request:
     paths:
-      - '.github/scripts/public_scan.py'
-      - '.github/scripts/test_public_scan.py'
+      - '.github/scripts/**'
       - '.github/ISSUE_TEMPLATE/public-scan.yml'
-      - '.github/workflows/public-scan.yml'
-      - '.github/workflows/public-scan-selftest.yml'
+      - '.github/workflows/**'
       - 'costdoctor-entry/entry/**'
+      - 'public_scan_contract.json'
+  schedule:
+    - cron: '17 3 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -51,6 +51,35 @@ jobs:
           node --check costdoctor-entry/entry/scan.mjs
           node --check costdoctor-entry/entry/cli.mjs
           node --check costdoctor-entry/entry/action.mjs
+
+      - name: Public boundary invariant checks
+        run: |
+          python3 -m json.tool public_scan_contract.json >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/public-scan.yml').read_text(encoding='utf-8')
+          script = Path('.github/scripts/public_scan.py').read_text(encoding='utf-8')
+          form = Path('.github/ISSUE_TEMPLATE/public-scan.yml').read_text(encoding='utf-8')
+          contract = json.loads(Path('public_scan_contract.json').read_text(encoding='utf-8'))
+
+          assert 'contents: read' in workflow
+          assert 'issues: write' in workflow
+          assert 'contents: write' not in workflow
+          assert 'pull_request_target' not in workflow
+          assert 'secrets.' not in workflow
+          assert 'PUBLIC_REPO_REQUIRED' in script
+          assert 'MAX_SCANS_PER_USER_24H = 5' in script
+          assert 'GIT_CONFIG_NOSYSTEM' in script
+          assert 'protocol.file.allow=never' in script
+          assert '결과 언어 / Result language' in form
+          assert contract['execution']['target_code_executed'] is False
+          assert contract['execution']['operator_personal_pc_used'] is False
+          assert contract['execution']['target_repository_write'] is False
+          assert contract['privacy']['raw_source_in_public_result'] is False
+          assert contract['claims']['actual_savings_verified_by_public_scan'] is False
+          PY
 
       - name: Fresh scanner smoke test
         shell: bash

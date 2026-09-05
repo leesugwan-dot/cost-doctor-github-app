@@ -1,5 +1,7 @@
 # CostDoctor 무료 공개 저장소 진단
 
+[FAQ](PUBLIC_SCAN_FAQ.md) · [상태 코드](PUBLIC_SCAN_STATUS_CODES.md) · [실제 예시](PUBLIC_SCAN_EXAMPLE.md) · [보안 경계](../SECURITY.md) · [코드/개인정보 처리 초안](../PRIVACY_DRAFT.md) · [기계 판독 계약](../public_scan_contract.json)
+
 ## 가장 간단한 사용법
 
 1. [무료 공개 저장소 진단 시작](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 엽니다.
@@ -60,6 +62,8 @@ GitHub 자체의 Issue/Actions 로그 보존은 GitHub 정책의 적용을 받�
 ## 오류가 날 때
 
 오류 댓글에는 원문 소스 대신 제한된 상태 코드와 다시 시도할 링크만 표시합니다. 저장소가 private이거나, 비활성화됐거나, 공개 베타 한도를 초과하거나, 분석 중 기본 브랜치가 바뀌면 안전하게 중단합니다.
+
+[상태 코드 표](PUBLIC_SCAN_STATUS_CODES.md)에서 의미와 다음 행동을 확인할 수 있습니다.
 
 ## 현재 범위 밖
 

@@ -50,8 +50,43 @@ English
         self.assertEqual(mod.parse_language(body), "en")
         self.assertTrue(mod.confirmation_present(body))
 
+    def test_confirmation_is_required(self):
+        body = "### GitHub 저장소 주소\n\nhttps://github.com/a/b\n"
+        self.assertFalse(mod.confirmation_present(body))
+
     def test_default_language_is_korean(self):
         self.assertEqual(mod.parse_language("### GitHub 저장소 주소\n\nhttps://github.com/a/b\n"), "ko")
+
+    def test_rate_limit_fails_closed(self):
+        old_api = mod.api
+        try:
+            mod.api = lambda *args, **kwargs: [
+                {"number": n, "title": f"{mod.TITLE_PREFIX} test-{n}"} for n in range(1, 6)
+            ]
+            with self.assertRaisesRegex(ValueError, "RATE_LIMITED"):
+                mod.enforce_rate_limit("owner/repo", "user", 99, "token")
+        finally:
+            mod.api = old_api
+
+    def test_rate_limit_allows_below_cap(self):
+        old_api = mod.api
+        try:
+            mod.api = lambda *args, **kwargs: [
+                {"number": 1, "title": f"{mod.TITLE_PREFIX} test"},
+                {"number": 2, "title": "[Bug] unrelated"},
+            ]
+            mod.enforce_rate_limit("owner/repo", "user", 99, "token")
+        finally:
+            mod.api = old_api
+
+    def test_private_repository_is_rejected(self):
+        old_api = mod.api
+        try:
+            mod.api = lambda *args, **kwargs: {"private": True}
+            with self.assertRaisesRegex(ValueError, "PUBLIC_REPO_REQUIRED"):
+                mod.get_target_metadata("owner/repo", "token")
+        finally:
+            mod.api = old_api
 
     def test_public_result_has_no_filename_field(self):
         report = {
@@ -71,6 +106,20 @@ English
         self.assertIn("실제 비용·토큰 절감: UNKNOWN", text)
         self.assertNotIn("filename", text.lower())
         self.assertNotIn("파일명:", text)
+
+    def test_english_result_keeps_unknown_claim_boundary(self):
+        report = {
+            "verdict": "SCAN_COMPLETE",
+            "coverage": {"analyzed_files": 1, "analyzed_bytes": 10},
+            "findings": [{"rule": "MODEL_CALL", "title": "x", "signal_count": 1}],
+        }
+        text = mod.format_result(
+            report, "a/b", {"language": "JavaScript"}, "en",
+            "https://github.com/x/y/issues/1",
+            "https://github.com/x/y/actions/runs/1",
+        )
+        self.assertIn("Actual token/cost savings: UNKNOWN", text)
+        self.assertIn("No target-project code was executed", text)
 
     def test_error_message_is_bounded_and_retryable(self):
         text = mod.friendly_error("URL_INVALID", "ko", "https://github.com/x/y/issues/new")
