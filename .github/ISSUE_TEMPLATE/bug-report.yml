@@ -1,0 +1,53 @@
+name: CostDoctor 공개 베타 오류 보고 / Public Beta Bug Report
+description: 공개 가능한 정보만 사용해 오류를 보고합니다. 비밀정보와 private code는 올리지 마세요.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        비밀번호, 토큰, API Key, private key, webhook secret, 원문 비공개 코드, 고객정보를 올리지 마세요.
+        Do not post secrets, private source code, credentials, or customer data.
+
+  - type: input
+    id: step
+    attributes:
+      label: 막힌 단계 / Blocked step
+      placeholder: 예) 저장소 주소 제출 후 결과 댓글이 나오지 않음
+    validations:
+      required: true
+
+  - type: input
+    id: status_code
+    attributes:
+      label: 화면에 표시된 상태 코드 / Visible status code
+      description: 원문 로그 대신 공개 결과에 표시된 제한된 상태 코드만 적어 주세요.
+      placeholder: 예) SCAN_TIMEOUT
+    validations:
+      required: false
+
+  - type: dropdown
+    id: reproducible
+    attributes:
+      label: 다시 실행해도 같은가요? / Reproducible?
+      options:
+        - 예 / Yes
+        - 아니오 / No
+        - 아직 모름 / Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: safe_details
+    attributes:
+      label: 공개 가능한 추가 설명 / Public-safe details
+      description: 비밀정보나 private code를 넣지 마세요.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: safe_confirmation
+    attributes:
+      label: 확인
+      options:
+        - label: 이 보고서에 비밀정보, API Key, private code, 고객정보를 포함하지 않았습니다.
+          required: true
