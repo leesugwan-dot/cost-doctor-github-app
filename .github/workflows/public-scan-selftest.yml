@@ -138,8 +138,9 @@ jobs:
           assert measured['customer_controls']['per_run_budget_approval_required'] is True
           assert measured['budget_guard']['fail_closed'] is True
           assert measured['deferred']['automatic_ai_code_modification'] is True
-          assert marketplace['status'] == 'READY_FOR_OWNER_UI_SUBMISSION'
+          assert marketplace['status'] == 'READY_FOR_OWNER_RELEASE_AND_PUBLISH'
           assert marketplace['listing_mode'] == 'FREE_ENTRY_FIRST'
+          assert marketplace['recommended_first_release']['tag'] == 'v1.0.0'
           assert 'automatic_code_modification_or_pr' in marketplace['deferred_features_not_to_advertise']
           assert 'Apache License' in license_text and 'Version 2.0' in license_text
           assert 'Proprietary optimization engines' in notice
