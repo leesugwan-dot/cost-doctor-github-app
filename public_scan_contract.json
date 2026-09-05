@@ -1,0 +1,46 @@
+{
+  "schema": "costdoctor.public-scan-contract.v2",
+  "status": "PUBLIC_BETA",
+  "input": {
+    "type": "public_github_repository_url",
+    "private_repositories": false,
+    "languages": ["ko", "en"]
+  },
+  "execution": {
+    "target_code_executed": false,
+    "operator_personal_pc_used": false,
+    "runner": "github-hosted",
+    "target_repository_write": false,
+    "ai_model_calls": false,
+    "paid_api_required": false,
+    "submodules_expanded": false,
+    "git_lfs_expanded": false
+  },
+  "binding": {
+    "default_branch_head_resolved_via_github_api": true,
+    "checkout_head_must_match": true
+  },
+  "privacy": {
+    "raw_source_in_public_result": false,
+    "filenames_in_public_result": false,
+    "credentials_requested": false,
+    "private_repository_content_supported": false,
+    "external_telemetry_service": false,
+    "request_and_result_issue_public": true
+  },
+  "limits": {
+    "max_scans_per_user_per_24h": 5,
+    "job_timeout_minutes": 5,
+    "repository_size_kb": 50000,
+    "scanner_file_count": 5000,
+    "scanner_file_bytes": 262144,
+    "scanner_total_bytes": 5242880
+  },
+  "claims": {
+    "static_review_signals_only": true,
+    "actual_calls_measured": false,
+    "actual_savings_verified_by_public_scan": false,
+    "quality_verified_by_public_scan": false,
+    "production_authority": false
+  }
+}
