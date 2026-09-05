@@ -1,0 +1,39 @@
+name: CostDoctor public repository scan
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: costdoctor-public-${{ github.actor }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    if: startsWith(github.event.issue.title, '[CostDoctor Scan]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted CostDoctor code only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Use fixed Node major
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          check-latest: false
+          package-manager-cache: false
+
+      - name: Analyze submitted public repository
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/public_scan.py
