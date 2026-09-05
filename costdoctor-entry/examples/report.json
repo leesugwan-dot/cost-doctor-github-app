@@ -1,0 +1,81 @@
+{
+  "schema": "costdoctor.repository-entry.v1",
+  "verdict": "SCAN_COMPLETE",
+  "diagnosis_status": "REVIEW_SIGNALS",
+  "scope": "Bounded static text signals, including tests/examples/comments. Not measured calls, defects or proven waste.",
+  "expected_head": "fa8509936be08809bd15ca90a371165eb9abeb50",
+  "head_binding": "Caller/runner context, not independently authenticated",
+  "snapshot_sha256": "c0d1c06648c215e869bcf0496e5519a2b29e51f6044bb042d8de1d35703d3f25",
+  "coverage": {
+    "visited": 58,
+    "analyzed_files": 45,
+    "analyzed_bytes": 173869,
+    "excluded_directories": 0,
+    "self_files_skipped": 0,
+    "sensitive_names_skipped": 0,
+    "unsupported_files": 8,
+    "symlinks_skipped": 0,
+    "oversized_files": 0,
+    "binary_files": 0,
+    "read_errors": 0,
+    "bound_exceeded": false
+  },
+  "findings": [
+    {
+      "rule": "MODEL_CALL",
+      "title": "모델 호출 후보",
+      "signal_count": 101,
+      "confidence": "HEURISTIC_REVIEW_REQUIRED",
+      "next_action": "실행 중 실제 호출 수를 기록해 같은 입력의 중복 호출부터 확인하세요."
+    },
+    {
+      "rule": "RETRY_LOOP",
+      "title": "재시도 설정 후보",
+      "signal_count": 0,
+      "confidence": "HEURISTIC_REVIEW_REQUIRED",
+      "next_action": "동일 요청의 최대 재시도와 실패 후 재작업을 함께 측정하세요. 무조건 제거하지 마세요."
+    },
+    {
+      "rule": "CACHE_SIGNAL",
+      "title": "캐시 사용 후보",
+      "signal_count": 3,
+      "confidence": "HEURISTIC_REVIEW_REQUIRED",
+      "next_action": "캐시 유무가 아니라 실제 적중률과 만료·개인정보 분리 여부를 확인하세요."
+    },
+    {
+      "rule": "TOKEN_LIMIT",
+      "title": "토큰·문맥 제한 후보",
+      "signal_count": 3,
+      "confidence": "HEURISTIC_REVIEW_REQUIRED",
+      "next_action": "입출력 길이와 품질을 함께 측정한 후 제한을 조정하세요."
+    }
+  ],
+  "savings": {
+    "status": "UNKNOWN",
+    "usd": null,
+    "tokens": null,
+    "reason": "No authenticated usage/price/quality Before-After evidence supplied"
+  },
+  "quality": {
+    "status": "NOT_MEASURED"
+  },
+  "rollback": {
+    "needed": false,
+    "reason": "Repository read-only; no fix applied"
+  },
+  "privacy": {
+    "raw_source_output": false,
+    "filenames_output": false,
+    "credentials_requested": false,
+    "repository_sent_to_external_service": false
+  },
+  "execution": {
+    "wall_ms": 20.8791,
+    "cpu_ms": 0,
+    "model_calls": 0,
+    "network_calls": 0,
+    "paid_calls": 0
+  },
+  "production_authority": false,
+  "external_user_verified": false
+}

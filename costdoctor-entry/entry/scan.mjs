@@ -1,0 +1,71 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+
+const EXT=new Set(['.py','.js','.mjs','.cjs','.ts','.tsx','.jsx','.json','.yml','.yaml','.toml']);
+const SKIP=new Set(['.git','.github-cache','node_modules','vendor','dist','build','.venv','venv','__pycache__','.cache','costdoctor-entry']);
+const secretName=n=>/(^\.env(?:\.|$)|credentials|secrets?|tokens?|private.?key|\.pem$|\.key$)/i.test(n);
+const HASH=b=>crypto.createHash('sha256').update(b).digest('hex');
+export const RULES=[
+ {id:'MODEL_CALL',rx:/\b(?:chat|generate|embed|embeddings|completion|completions|invoke)\s*\(/gi,title:'모델 호출 후보',next:'실행 중 실제 호출 수를 기록해 같은 입력의 중복 호출부터 확인하세요.'},
+ {id:'RETRY_LOOP',rx:/\b(?:retry|retries|max_retries|backoff|tenacity)\b/gi,title:'재시도 설정 후보',next:'동일 요청의 최대 재시도와 실패 후 재작업을 함께 측정하세요. 무조건 제거하지 마세요.'},
+ {id:'CACHE_SIGNAL',rx:/\b(?:cache|cached|lru_cache|cache_control)\b/gi,title:'캐시 사용 후보',next:'캐시 유무가 아니라 실제 적중률과 만료·개인정보 분리 여부를 확인하세요.'},
+ {id:'TOKEN_LIMIT',rx:/\b(?:max_tokens|max_output_tokens|num_predict|num_ctx|context_window)\b/gi,title:'토큰·문맥 제한 후보',next:'입출력 길이와 품질을 함께 측정한 후 제한을 조정하세요.'}
+];
+export function scan(repo,{expectedHead=null}={}){
+ const begin=performance.now(),cpu=process.cpuUsage();
+ if(!fs.existsSync(repo)||!fs.statSync(repo).isDirectory()||fs.lstatSync(repo).isSymbolicLink())throw Error('REPOSITORY_INVALID');
+ if(expectedHead!==null&&!/^[a-f0-9]{40}$/.test(expectedHead))throw Error('HEAD_INVALID');
+ const base=fs.realpathSync(repo),manifest=[],counts=Object.fromEntries(RULES.map(r=>[r.id,0]));
+ const coverage={visited:0,analyzed_files:0,analyzed_bytes:0,excluded_directories:0,self_files_skipped:0,sensitive_names_skipped:0,unsupported_files:0,symlinks_skipped:0,oversized_files:0,binary_files:0,read_errors:0,bound_exceeded:false};
+ function walk(dir,depth){
+  if(depth>12||coverage.visited>=5000){coverage.bound_exceeded=true;return;}
+  let dh;try{dh=fs.opendirSync(dir);}catch{coverage.read_errors++;return;}
+  const entries=[];try{let e;while((e=dh.readSync())){if(entries.length>=512){coverage.bound_exceeded=true;break;}entries.push(e);}}finally{dh.closeSync();}
+  for(const e of entries.sort((a,b)=>a.name.localeCompare(b.name,'en'))){
+   if(++coverage.visited>5000){coverage.bound_exceeded=true;return;}
+   const p=path.join(dir,e.name);
+   if(path.relative(base,p).replaceAll(path.sep,'/')==='.github/workflows/costdoctor.yml'){coverage.self_files_skipped++;continue;}
+   if(e.isSymbolicLink()){coverage.symlinks_skipped++;continue;}
+   if(secretName(e.name)){coverage.sensitive_names_skipped++;continue;}
+   if(e.isDirectory()){if(SKIP.has(e.name)){coverage.excluded_directories++;continue;}walk(p,depth+1);continue;}
+   if(!e.isFile()||!EXT.has(path.extname(e.name).toLowerCase())){coverage.unsupported_files++;continue;}
+   let fd;
+   try{
+    if(!fs.realpathSync(p).startsWith(base+path.sep)){coverage.symlinks_skipped++;continue;}
+    fd=fs.openSync(p,fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW||0));const st=fs.fstatSync(fd);
+    if(!st.isFile()||st.size>262144){coverage.oversized_files++;continue;}
+    if(coverage.analyzed_bytes+st.size>5242880){coverage.bound_exceeded=true;return;}
+    const b=Buffer.alloc(st.size);const length=fs.readSync(fd,b,0,b.length,0);if(length!==b.length){coverage.read_errors++;continue;}
+    if(b.includes(0)){coverage.binary_files++;continue;}
+    const text=b.toString('utf8');coverage.analyzed_files++;coverage.analyzed_bytes+=b.length;
+    manifest.push([path.relative(base,p).replaceAll(path.sep,'/'),HASH(b)]);
+    for(const rule of RULES){rule.rx.lastIndex=0;counts[rule.id]+=[...text.matchAll(rule.rx)].length;}
+   }catch{coverage.read_errors++;}finally{if(fd!==undefined)fs.closeSync(fd);}
+  }
+ }
+ walk(base,0);manifest.sort((a,b)=>a[0].localeCompare(b[0],'en'));
+ const limited=coverage.bound_exceeded||coverage.symlinks_skipped>0||coverage.oversized_files>0||coverage.read_errors>0;
+ const total=Object.values(counts).reduce((a,b)=>a+b,0);
+ return {schema:'costdoctor.repository-entry.v1',verdict:coverage.analyzed_files===0?'NO_SUPPORTED_SOURCE':limited?'PARTIAL_SCAN':'SCAN_COMPLETE',diagnosis_status:total?'REVIEW_SIGNALS':'NO_MATCH_IN_SCANNED_SCOPE',
+  scope:'Bounded static text signals, including tests/examples/comments. Not measured calls, defects or proven waste.',expected_head:expectedHead,head_binding:'Caller/runner context, not independently authenticated',snapshot_sha256:HASH(JSON.stringify(manifest)),coverage,
+  findings:RULES.map(r=>({rule:r.id,title:r.title,signal_count:counts[r.id],confidence:'HEURISTIC_REVIEW_REQUIRED',next_action:r.next})),
+  savings:{status:'UNKNOWN',usd:null,tokens:null,reason:'No authenticated usage/price/quality Before-After evidence supplied'},quality:{status:'NOT_MEASURED'},rollback:{needed:false,reason:'Repository read-only; no fix applied'},
+  privacy:{raw_source_output:false,filenames_output:false,credentials_requested:false,repository_sent_to_external_service:false},
+  execution:{wall_ms:performance.now()-begin,cpu_ms:Object.values(process.cpuUsage(cpu)).reduce((a,b)=>a+b,0)/1000,model_calls:0,network_calls:0,paid_calls:0},production_authority:false,external_user_verified:false};
+}
+export function markdown(r){
+ return ['# CostDoctor 저장소 진단',`상태: **${r.verdict}** — 절감 검증 완료가 아닙니다.`,`검사한 파일: ${r.coverage.analyzed_files}개 / ${r.coverage.analyzed_bytes} bytes`,`고정 commit: ${r.expected_head??'UNKNOWN'} — 호출 환경 값이며 별도 인증은 아닙니다.`,
+ '| 확인할 항목 | 정적 신호 수 | 다음 행동 |','| --- | ---: | --- |',...r.findings.map(x=>`| ${x.title} | ${x.signal_count} | ${x.next_action} |`),
+ '','**실제 비용·토큰 절감: UNKNOWN.** 신호 수는 실제 호출 수나 낭비량이 아닙니다. 주석·예제·테스트도 포함됩니다.','Before/After는 같은 목표·입력·모델·품질 기준으로 실제 사용량과 재시도/재작업을 측정해야 합니다. 비용이 줄어도 품질이 낮아지면 성공이 아닙니다.',
+ '자동 수정은 하지 않았으므로 저장소 rollback은 필요 없습니다. 이후 개선은 별도 branch/commit에 적용하고 품질이 나빠지면 그 변경만 되돌립니다.',
+ `범위 제한: 링크 ${r.coverage.symlinks_skipped}, 큰 파일 ${r.coverage.oversized_files}, 읽기 오류 ${r.coverage.read_errors}, 한도 초과 ${r.coverage.bound_exceeded}. 제외된 파일을 검사했다고 주장하지 않습니다.`,
+ '지금 할 일: 신호가 많은 항목 1개를 골라 실제 실행 사용량을 기록하세요. 신호가 없으면 이 검사 범위에서 일치하지 않은 것이며 비용 낭비가 없다는 뜻이 아닙니다.',
+ '원문 코드·파일명·비밀키는 보고서에 포함되지 않습니다. 보고서는 저장소 소유자만 검토하고, 외부 공유 전 공개 범위를 확인하세요.',''].join('\n');
+}
+export function writeReport(repo,out,options={}){
+ const b=fs.realpathSync(repo),requested=path.resolve(out),parent=path.dirname(requested);if(!fs.existsSync(parent)||fs.lstatSync(parent).isSymbolicLink())throw Error('OUTPUT_PARENT_INVALID');
+ const o=path.join(fs.realpathSync(parent),path.basename(requested));if(o===b||o.startsWith(b+path.sep))throw Error('OUTPUT_MUST_BE_OUTSIDE_REPOSITORY');
+ if(fs.existsSync(o))throw Error('OUTPUT_EXISTS');
+ const r=scan(repo,options);fs.mkdirSync(o);fs.writeFileSync(path.join(o,'report.json'),JSON.stringify(r,null,2),{flag:'wx'});fs.writeFileSync(path.join(o,'report.md'),markdown(r),{flag:'wx'});return r;
+}

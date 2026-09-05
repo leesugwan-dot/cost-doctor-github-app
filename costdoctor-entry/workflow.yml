@@ -1,0 +1,38 @@
+name: CostDoctor repository review
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: costdoctor-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read exact triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+      - name: Use fixed Node major without project dependency cache
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          check-latest: false
+          package-manager-cache: false
+      - name: Review repository without executing its code
+        id: doctor
+        uses: ./costdoctor-entry
+      - name: Keep sanitized report only
+        if: ${{ always() && steps.doctor.outputs.report-directory != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: costdoctor-report
+          path: ${{ steps.doctor.outputs.report-directory }}/report.*
+          if-no-files-found: error
+          retention-days: 1
+          include-hidden-files: false
