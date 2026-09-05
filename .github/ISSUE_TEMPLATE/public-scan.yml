@@ -1,25 +1,43 @@
-name: CostDoctor 무료 공개 저장소 진단
-description: 공개 GitHub 저장소 주소 하나를 넣으면 CostDoctor가 자동으로 정적 진단하고 이 이슈에 결과를 남깁니다.
+name: CostDoctor 무료 공개 저장소 진단 / Free Public Repository Scan
+description: GitHub 저장소 주소 하나를 넣으면 CostDoctor가 자동으로 안전한 정적 진단을 수행하고 이 이슈에 결과를 남깁니다.
 title: "[CostDoctor Scan] "
 body:
   - type: markdown
     attributes:
       value: |
-        공개 저장소 전용 무료 진단입니다.
+        ## 주소 하나만 넣으면 됩니다
 
-        - 사용자 PC나 CostDoctor 운영자의 개인 PC로 프로젝트를 보내지 않습니다.
-        - GitHub-hosted runner의 임시 작업공간에서 정적 분석합니다.
-        - 대상 프로젝트의 코드를 실행하지 않습니다.
+        공개 GitHub 저장소 전용 무료 베타입니다.
+
+        - 프로젝트는 CostDoctor 운영자의 개인 PC로 보내지 않습니다.
+        - GitHub-hosted runner의 임시 작업공간에서만 제한된 정적 분석을 수행합니다.
+        - 대상 프로젝트 코드는 실행하지 않습니다.
         - API Key, PAT, OAuth, AI 모델 결제가 필요하지 않습니다.
-        - 결과는 이 공개 이슈에 표시됩니다.
-        - 이 진단만으로 실제 비용·토큰 절감이 증명되는 것은 아닙니다.
+        - 원문 코드·파일명·비밀정보는 결과 댓글에 포함하지 않습니다.
+        - 결과는 공개 GitHub 이슈에 표시됩니다.
+        - 정적 신호는 실제 호출 수·낭비·절감액을 증명하지 않습니다.
+        - 무료 공개 베타는 사용자당 24시간 최대 5회입니다.
+
+        English: paste one public GitHub repository URL, submit, and wait for the result comment. Target-project code is not executed or sent to the operator's personal PC.
 
   - type: input
     id: repository_url
     attributes:
       label: GitHub 저장소 주소
-      description: 검사할 공개 GitHub 저장소의 주소를 그대로 붙여넣으세요.
+      description: 공개 저장소 주소를 그대로 붙여넣으세요. 저장소 안의 branch/file 링크를 붙여넣어도 저장소 주소로 자동 정리합니다.
       placeholder: https://github.com/owner/repository
+    validations:
+      required: true
+
+  - type: dropdown
+    id: result_language
+    attributes:
+      label: 결과 언어 / Result language
+      description: 결과를 표시할 언어를 선택하세요.
+      options:
+        - 한국어
+        - English
+      default: 0
     validations:
       required: true
 
@@ -28,7 +46,5 @@ body:
     attributes:
       label: 확인
       options:
-        - label: 이 저장소가 공개 저장소이며 공개 정적 진단을 진행해도 됩니다.
-          required: true
-        - label: 진단 결과가 이 공개 GitHub 이슈에 표시되는 것을 확인했습니다.
+        - label: 이 저장소가 공개 저장소이며 진단 결과가 공개 GitHub 이슈에 표시되는 것에 동의합니다.
           required: true
