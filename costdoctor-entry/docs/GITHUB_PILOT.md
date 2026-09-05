@@ -8,10 +8,10 @@
 
 ## 참가자가 정확히 할 일
 
-게시 후 실제 버전이 고정되면 공개 코드/문서만으로 로컬 재현할 수 없는 **다른 계정의 권한·설치·사용성** 확인에 한해 참가자가 필요합니다. 임의의 타인 저장소를 대신 수정하지 않습니다.
+공개 구현 `60b99f581a3beb6b40954db98ed388f5441cd593`의 소유자 계정 설치·실행·Summary·Artifact는 검증했습니다. 이제 공개 코드/문서만으로 재현할 수 없는 **다른 계정의 권한·설치·사용성** 확인에 한해 참가자가 필요합니다. 임의의 타인 저장소를 대신 수정하지 않습니다.
 
 1. 참가자는 자신이 관리하는 비밀정보 없는 공개 시험 저장소 하나의 사용에 자발적으로 동의합니다. 이름·연락처·개인 저장소 내용을 보낼 필요는 없습니다.
-2. 공개 CostDoctor README에서 검증된 release/commit의 `costdoctor-onefile.yml`을 열고 Raw 내용 전체를 복사합니다. App의 Install 버튼을 사용하지 않습니다. root README에서 검증한 버전의 고정 링크를 확인합니다.
+2. [검증한 파일](https://github.com/leesugwan-dot/cost-doctor-github-app/blob/60b99f581a3beb6b40954db98ed388f5441cd593/costdoctor-entry/costdoctor-onefile.yml) 또는 [Raw 복사용](https://raw.githubusercontent.com/leesugwan-dot/cost-doctor-github-app/60b99f581a3beb6b40954db98ed388f5441cd593/costdoctor-entry/costdoctor-onefile.yml)을 열고 내용 전체를 복사합니다. App의 Install 버튼을 사용하지 않습니다. root README에서 검증한 버전의 고정 링크를 확인합니다.
 3. 시험 저장소 **Code → Add file → Create new file**에서 파일명을 `.github/workflows/costdoctor.yml`로 입력하고 복사한 내용을 붙여 넣습니다. **Commit changes**로 기본 branch에 저장합니다. 권한이 없거나 branch 보호가 있으면 저장소 관리자가 설치 commit을 승인합니다. 별도 Action 폴더 업로드·모델/API key는 필요 없습니다.
 4. 기본 branch에 설치 후 **Actions → CostDoctor repository review → Run workflow → Run workflow**를 누릅니다. 기본 branch에 workflow가 있어야 버튼이 보입니다.
 5. 완료 실행을 열어 **Summary**의 진단 표와 다음 행동을 읽습니다. 필요하면 **Artifacts → costdoctor-report**를 받아 report.md/report.json을 봅니다. 녹색 실행은 scan 완료이지 절감 PASS가 아닙니다.
@@ -26,3 +26,7 @@
 참가자가 허용한 비공개 전달 경로로 무작위 시험 ID, 동의 확인, 사용한 버전 SHA, OS/runtime 주 버전, 설치/실행 성공, 첫 Summary까지 걸린 시간, 고정 오류코드, 보고서의 이해/행동 가능 여부와 재사용 의향만 보냅니다. 원문 코드·파일명·계정 ID·token·prompt·private repo·청구서는 보내지 않습니다. 실행 URL 공유는 해당 공개 실행의 별도 동의가 있을 때만 선택사항입니다.
 
 엔진은 자기보고만으로 외부 PASS를 만들지 않고 exact 공개 버전/관측 가능한 실행/권한 경계와 독립 readback을 재확인합니다. 참가자 동의는 비용절감 인증이나 공개/판매 동의가 아닙니다.
+
+## 이미 확인한 실행과 제한
+
+[GitHub 실제 실행·Summary](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/runs/33983233394)는 고정 구현에서 성공했고 Ubuntu 보고서와 Windows 실행 및 별도 Python 재계산이 일치했습니다. Artifact는 보고서 2개만 있으며 1일 뒤 만료될 수 있습니다. 만료 후에도 Summary를 확인할 수 있습니다. 17초는 서버 실행 시간입니다. 참가자의 설치 시간, 성공률, 재사용 의향은 아직 측정하지 않았습니다. 모델 키나 앱 설치가 필요 없으며 이 시험을 위해 새 결제를 하지 마세요.

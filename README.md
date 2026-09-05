@@ -1,15 +1,15 @@
 <!-- COSTDOCTOR_PUBLIC_ENTRY_START -->
 ## CostDoctor: App 없이 GitHub에서 시작
 
-**공개 진입점 Pilot / hosted 실제 실행 검증 대기 / Production Authority=false**
+**공개 진입점 Pilot / GitHub Ubuntu 실제 실행·보고서 재계산 PASS / Production Authority=false**
 
 [시작·설치](costdoctor-entry/docs/GITHUB_PILOT.md) · [한 파일 workflow](costdoctor-entry/costdoctor-onefile.yml) · [결과 예시](costdoctor-entry/examples/report.md) · [권한·정보수집](costdoctor-entry/docs/PRIVACY_PERMISSIONS.md) · [오류](costdoctor-entry/docs/TROUBLESHOOTING.md) · [중단·되돌리기](costdoctor-entry/docs/ROLLBACK.md)
 
-자신의 공개 저장소에서 workflow 한 파일을 기본 branch의 `.github/workflows/costdoctor.yml`로 저장하고 **Actions → CostDoctor repository review → Run workflow**를 실행합니다. 완료된 실행의 **Summary**에서 검토 후보와 다음 행동을 확인합니다. 이 저장소에도 같은 수동 workflow를 설치합니다.
+자신의 공개 저장소에서 workflow 한 파일을 기본 branch의 `.github/workflows/costdoctor.yml`로 저장하고 **Actions → CostDoctor repository review → Run workflow**를 실행합니다. 완료된 실행의 **Summary**에서 검토 후보와 다음 행동을 확인합니다. 이 저장소의 동일 workflow 실제 실행도 성공했습니다.
 
 모델/API key/App 설치 없이 저장소를 읽는 정적 진단입니다. 실제 호출 수·비용 절감·품질 인증이 아닙니다. 소스 수정/merge 차단은 하지 않습니다. 보고서는 원문 코드·파일명·secret을 담지 않습니다. 표준 public runner만 사용하며 private/유료 runner로 자동 전환하지 않습니다.
 
-이번 공개 허용 범위는 `costdoctor-entry`의 entry/Action/workflow/README/안내/공개 예제 및 실행용 workflow입니다. 아래 기존 App 문서와 `public_boundary.json`은 이전 App의 범위로 보존하며, 이번 공개가 비공개 core/backend/원문 Evidence를 허용하지 않습니다. 게시·실행 검증 후 이 블록에 exact implementation commit과 실행/보고서 링크를 연결합니다.
+이번 공개 허용 범위는 `costdoctor-entry`의 entry/Action/workflow/README/안내/공개 예제 및 실행용 workflow입니다. 아래 기존 App 문서와 `public_boundary.json`은 이전 App의 범위로 보존하며, 이번 공개가 비공개 core/backend/원문 Evidence를 허용하지 않습니다. 검증한 구현 commit은 `60b99f581a3beb6b40954db98ed388f5441cd593`입니다. [고정 설치 파일](https://github.com/leesugwan-dot/cost-doctor-github-app/blob/60b99f581a3beb6b40954db98ed388f5441cd593/costdoctor-entry/costdoctor-onefile.yml) · [Raw 복사용](https://raw.githubusercontent.com/leesugwan-dot/cost-doctor-github-app/60b99f581a3beb6b40954db98ed388f5441cd593/costdoctor-entry/costdoctor-onefile.yml) · [실제 실행·Summary](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/runs/33983233394). 17초는 서버 실행 시간이며 사람의 설치 시간이나 비용절감 수치가 아닙니다. 다른 계정의 설치·사용성은 아직 미검증입니다.
 <!-- COSTDOCTOR_PUBLIC_ENTRY_END -->
 
 ---

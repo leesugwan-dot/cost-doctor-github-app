@@ -1,6 +1,6 @@
 # CostDoctor — GitHub 저장소에서 먼저 확인하기
 
-**상태: 공개 진입점 Pilot — GitHub hosted actual 검증 진행 전.** 기존 비공개 App을 공개 설치할 수 있다는 뜻이 아닙니다. 이 폴더는 기존 제품을 교체하지 않습니다.
+**상태: 공개 진입점 Pilot — GitHub Ubuntu 실제 실행 및 별도 Windows/Python 보고서 재계산 PASS.** 기존 비공개 App을 공개 설치할 수 있다는 뜻이 아닙니다. 이 폴더는 기존 제품을 교체하지 않습니다.
 
 모델 사용 코드·재시도·캐시·문맥 제한의 **검토 후보**를 찾아, 어디부터 실제 사용량을 측정할지 알려줍니다. API 키, 모델 설치, 정규화된 telemetry 파일 없이 첫 진단을 실행할 수 있습니다. 신호 수는 실제 호출 수·비용·낭비량이 아닙니다.
 
@@ -12,7 +12,7 @@
 
 GitHub 안의 **워크플로 파일 1개 추가** → 수동 **Run workflow** → 같은 commit 읽기 → 정적 진단 → 실행 Summary와 보고서 Artifact 확인 경로입니다. `costdoctor-onefile.yml`은 검증한 동일 scanner/handler로 자동 생성됩니다. App/secret/npm/별도 서버 없이 runner에서만 읽습니다. 자동 PR 이벤트는 기본적으로 켜지 않습니다.
 
-이 진입점은 소유자가 승인한 공개 범위이며 기존 App과 별도입니다. [정확한 설치·실행 순서](docs/GITHUB_PILOT.md)를 참조하세요. hosted 결과가 연결되기 전 실제 서버 검증 완료를 주장하지 않습니다.
+이 진입점은 소유자가 승인한 공개 범위이며 기존 App과 별도입니다. [정확한 설치·실행 순서](docs/GITHUB_PILOT.md)를 참조하세요. 검증 구현은 `60b99f581a3beb6b40954db98ed388f5441cd593`이며 [실제 실행·Summary](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/runs/33983233394)와 [고정 설치 파일](https://github.com/leesugwan-dot/cost-doctor-github-app/blob/60b99f581a3beb6b40954db98ed388f5441cd593/costdoctor-entry/costdoctor-onefile.yml)을 확인할 수 있습니다. 다른 계정의 설치·사용성이나 실제 절감 인증은 아닙니다.
 
 ## 로컬 GitHub 프로젝트 진단
 

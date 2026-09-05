@@ -15,6 +15,16 @@
 5. 실제 usage와 검증된 가격/청구 출처가 모두 있을 때만 금액을 계산합니다. 그렇지 않으면 UNKNOWN입니다.
 6. 품질 악화·오탐 증가·재작업 증가가 있으면 성공으로 표시하지 않고 해당 개선을 되돌립니다.
 
-기존 CostDoctor scan/optimize/verify/guard 제품과 인증 경계는 그대로입니다. 이 entry candidate는 새 자동 금액 verifier를 만들지 않습니다. 기존 제품을 보유한 소유자는 그 제품의 exact 사용량/작업명세/영수증 결속 절차를 사용할 수 있지만, 비공개 제품 코어를 이 Action에 번들하거나 외부 사용자에게 임의 배포하지 않습니다.
+기존 CostDoctor scan/optimize/verify/guard 제품과 인증 경계는 그대로입니다. 이 공개 진입점은 새 자동 금액 verifier를 만들지 않습니다. 기존 제품을 보유한 소유자는 그 제품의 exact 사용량/작업명세/영수증 결속 절차를 사용할 수 있지만, 비공개 제품 코어를 이 Action에 번들하거나 외부 사용자에게 임의 배포하지 않습니다.
 
 이전 공개 OSS 시간 개선과 두 API workload 결과는 과거 제한 범위입니다. 새 저장소 결과나 모든 고객의 평균 절감률이 아닙니다.
+
+## 공개 진입점 실제 서버 검증
+
+- 구현 commit: `60b99f581a3beb6b40954db98ed388f5441cd593`. [실행·Summary](https://github.com/leesugwan-dot/cost-doctor-github-app/actions/runs/33983233394).
+- 표준 GitHub Ubuntu runner 실제 성공, 전체 실행 17초. 사람의 설치/첫 가치 시간과 다릅니다.
+- 해당 저장소 검사: 3개 파일, 3,366 bytes, 4종 정적 신호 모두 0. 검사 범위에서 일치하지 않았다는 뜻이며 낭비 없음 증명이 아닙니다.
+- 보고서 ZIP: 2개 파일, 2,627 bytes. GitHub Artifact digest와 다운로드 SHA256 일치.
+- 동일 공개 소스의 Windows 실행과 별도 Python 재계산 일치.
+- 실제 비용/토큰 절감 UNKNOWN, 품질 미측정, 외부 참가자 미검증, Production Authority=false.
+- 기존 ollama-python 예시는 별도의 과거 로컬 공개 소스 검사이며 이번 hosted 입력이나 새로운 절감 workload로 계산하지 않습니다.
