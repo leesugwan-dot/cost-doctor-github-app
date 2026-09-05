@@ -1,0 +1,23 @@
+{
+  "schema": "costdoctor.marketplace-readiness.v1",
+  "status": "READY_FOR_OWNER_UI_SUBMISSION",
+  "listing_mode": "FREE_ENTRY_FIRST",
+  "root_action_metadata": "action.yml",
+  "license": "Apache-2.0",
+  "privacy_policy": "PRIVACY.md",
+  "terms": "TERMS.md",
+  "support": "SUPPORT.md",
+  "security": "SECURITY.md",
+  "private_repo_default": "customer_github_actions_self_scan_read_only",
+  "deferred_features_not_to_advertise": [
+    "automatic_code_modification_or_pr",
+    "paid_verified_fix",
+    "ai_provider_based_auto_fix"
+  ],
+  "external_owner_actions": [
+    "accept any GitHub Marketplace publisher terms required by the UI",
+    "complete listing fields that GitHub requires in owner-only UI",
+    "submit or publish the listing",
+    "respond to any GitHub review request"
+  ]
+}
