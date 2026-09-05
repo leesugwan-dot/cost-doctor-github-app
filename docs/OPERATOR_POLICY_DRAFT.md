@@ -1,47 +1,19 @@
-# CostDoctor 운영정책 초안 — 운영자 확정 전
+# CostDoctor 운영정책 초안 — 과거 보존본
 
-상태: `DRAFT_ONLY / OPERATOR_FIELDS_REQUIRED`
+상태: `SUPERSEDED_BY_OPERATOR_POLICY_MD`
 
-이 문서는 기술 구현을 멈추지 않기 위한 준비본이며 법률 자문이나 최종 약관이 아닙니다.
+현재 운영정책은 **[OPERATOR_POLICY.md](../OPERATOR_POLICY.md)** 를 기준으로 합니다.
 
-## 현재 고정 가능한 기술 사실
+확정된 현재 기본값:
 
-- 무료 공개 진단은 공개 GitHub Issue를 입력/결과 화면으로 사용합니다.
-- 공개 진단은 GitHub-hosted runner에서 수행합니다.
-- 대상 프로젝트 코드는 실행하지 않습니다.
-- CostDoctor 운영자의 개인 PC에 고객 프로젝트를 저장하지 않습니다.
-- 공개 결과에 원문 코드·파일명·비밀키·API Key를 넣지 않습니다.
-- 외부 telemetry 수집 서비스는 현재 연결하지 않습니다.
-- private repository Self-Scan은 저장소 소유자 GitHub Actions 안에서 실행하도록 준비합니다.
-- 정적 신호만으로 실제 비용·토큰 절감 또는 품질 개선을 주장하지 않습니다.
+- 서비스 표시명: CostDoctor
+- 일반 지원 URL: GitHub Issues
+- 기본 지원 언어: 한국어 + English
+- 기본 준거 기준: 대한민국
+- CostDoctor 자체 외부 telemetry: 기본 OFF
+- 고객 source의 운영자 개인 PC 저장: 금지
+- Private Repository: 사용자 GitHub Actions 내부 read-only Self-Scan
+- 실제 API 측정: 고객 GitHub Secret + 작업별 최대 지출한도 승인
+- 무료 베타 SLA: 보장 없음 / best-effort
 
-## 운영자가 채워야 하는 실제 정보
-
-- 서비스 운영자 표시명: `[결정 필요]`
-- 공식 지원 이메일 또는 지원 URL: `[결정 필요]`
-- 사업자/법적 표시가 필요한 시점과 표시 내용: `[결정 필요]`
-- 기본 지원 언어: `[추천: 한국어 + English]`
-- 보존정책: `[추천: CostDoctor 자체 영속 원문 저장 0, GitHub 기록은 GitHub 정책 적용]`
-- 삭제 요청 채널: `[결정 필요]`
-- 적용 관할/준거법: `[결정 필요]`
-- 무료 베타 지원수준/SLA: `[추천: 보장 없음, best-effort]`
-
-## 개인정보 정책 추천 기본값
-
-1. 고객 source 원문을 운영자 저장소/PC/서버에 장기 보관하지 않음.
-2. 공개 진단은 사용자가 이미 공개한 repository만 처리.
-3. private source는 사용자 GitHub Actions 내부 Self-Scan 우선.
-4. telemetry는 기본 OFF.
-5. 실제 유료 측정에서도 비밀키는 고객 GitHub Secret에 두고 운영자가 받지 않음.
-6. 결과에 필요한 최소 요약값과 Evidence만 사용.
-
-## 유료화 전 추가 확정
-
-- 가격
-- 세금/영수증 처리
-- 환불 기준
-- 결제 취소/재시도
-- 유료 지원 범위
-- 기업 고객 계약 경계
-
-최종 공개문서는 실제 운영자 정보와 관할 규정 확인 후 별도로 확정합니다.
+자동 코드 수정/PR, 유료화 방식, 외부 AI Provider 자동수정 방식은 외부 반응을 본 뒤 결정하도록 보류되어 있습니다.
