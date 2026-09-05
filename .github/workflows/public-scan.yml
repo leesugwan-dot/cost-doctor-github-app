@@ -34,6 +34,17 @@ jobs:
           package-manager-cache: false
 
       - name: Analyze submitted public repository
+        id: scan
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/public_scan.py
+
+      - name: Keep sanitized result and receipt briefly
+        if: ${{ always() && steps.scan.outputs.public-output-dir != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: costdoctor-public-report-${{ github.event.issue.number }}
+          path: ${{ steps.scan.outputs.public-output-dir }}/*
+          if-no-files-found: error
+          retention-days: 1
+          include-hidden-files: false
