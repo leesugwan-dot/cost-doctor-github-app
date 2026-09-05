@@ -1,0 +1,19 @@
+name: CostDoctor Repository Review
+description: Read-only static repository review. No target-code execution, source upload, API key, or savings claim.
+author: CostDoctor
+branding:
+  icon: activity
+  color: blue
+inputs:
+  repository:
+    description: Relative directory inside the checked-out workspace
+    required: false
+    default: '.'
+outputs:
+  report-directory:
+    description: Runner-local directory containing sanitized report.json and report.md
+  scan-status:
+    description: SCAN_COMPLETE, PARTIAL_SCAN, or NO_SUPPORTED_SOURCE; never a savings verdict
+runs:
+  using: node24
+  main: costdoctor-entry/entry/action.mjs
