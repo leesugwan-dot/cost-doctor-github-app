@@ -1,0 +1,35 @@
+name: 개인정보/삭제 요청
+about: 공개 CostDoctor 기록의 삭제·처리 문의. 민감정보를 입력하지 마세요.
+title: "[Privacy Request] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **비밀번호, API Key, PAT, private key, 비공개 코드, 고객정보를 이 공개 양식에 적지 마세요.**
+        현재 CostDoctor 무료 베타는 별도 사용자 DB를 운영하지 않습니다. 공개 진단 Issue/결과에 대한 삭제·처리 문의는 공개된 Issue 번호나 URL만으로 요청하세요.
+  - type: input
+    id: public_record
+    attributes:
+      label: 관련 공개 기록
+      description: 삭제 또는 확인이 필요한 CostDoctor Issue 번호나 공개 URL만 입력하세요.
+      placeholder: "예: #123 또는 https://github.com/.../issues/123"
+    validations:
+      required: true
+  - type: dropdown
+    id: request_type
+    attributes:
+      label: 요청 종류
+      options:
+        - 공개 기록 삭제 요청
+        - 처리 방식 문의
+        - 개인정보 정책 문의
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 확인
+      options:
+        - label: 민감정보나 비공개 코드를 이 공개 양식에 포함하지 않았습니다.
+          required: true
