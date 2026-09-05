@@ -1,3 +1,18 @@
+<!-- COSTDOCTOR_PUBLIC_URL_SCAN_START -->
+# CostDoctor 무료 공개 저장소 진단
+
+**GitHub 주소 하나만 넣으면 됩니다.** 공개 저장소를 GitHub-hosted runner에서 정적 분석하고 결과를 같은 GitHub 이슈에 자동으로 남깁니다.
+
+[**▶ 공개 저장소 무료 진단 시작**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)
+
+1. 위 링크를 엽니다.
+2. 자신의 **공개 GitHub 저장소 주소**를 붙여넣습니다.
+3. `Submit new issue`를 누릅니다.
+4. CostDoctor가 자동 분석한 뒤 결과 댓글을 남기고 요청을 닫습니다.
+
+사용자의 프로젝트는 CostDoctor 운영자의 개인 PC로 보내지 않습니다. 대상 코드를 실행하지 않고, 표준 GitHub-hosted runner의 임시 작업공간에서 제한된 정적 분석만 수행합니다. 원문 코드·파일명·비밀정보는 결과 댓글에 포함하지 않습니다. 현재 무료 공개 진단은 **public repository 전용**이며 실제 호출 수·비용·토큰 절감·품질 개선을 증명하는 단계는 아닙니다.
+<!-- COSTDOCTOR_PUBLIC_URL_SCAN_END -->
+
 <!-- ACTUAL_SCREEN_GUIDE_R1_START -->
 ## 사진 보고 시작하기
 
