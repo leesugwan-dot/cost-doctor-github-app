@@ -1,0 +1,56 @@
+name: CostDoctor root Action self-test
+
+on:
+  pull_request:
+    paths:
+      - 'action.yml'
+      - 'costdoctor-entry/entry/**'
+      - '.github/workflows/root-action-selftest.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'action.yml'
+      - 'costdoctor-entry/entry/**'
+      - '.github/workflows/root-action-selftest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  action-self-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Run CostDoctor through root action metadata
+        id: costdoctor
+        uses: ./
+
+      - name: Verify sanitized action outputs
+        shell: bash
+        env:
+          REPORT_DIR: ${{ steps.costdoctor.outputs.report-directory }}
+          SCAN_STATUS: ${{ steps.costdoctor.outputs.scan-status }}
+        run: |
+          set -euo pipefail
+          test -n "$REPORT_DIR"
+          test -n "$SCAN_STATUS"
+          test -s "$REPORT_DIR/report.json"
+          test -s "$REPORT_DIR/report.md"
+          python3 - "$REPORT_DIR/report.json" <<'PY'
+          import json, sys
+          data=json.load(open(sys.argv[1], encoding='utf-8'))
+          assert data['privacy']['raw_source_output'] is False
+          assert data['privacy']['filenames_output'] is False
+          assert data['savings']['status'] == 'UNKNOWN'
+          assert data['execution']['model_calls'] == 0
+          assert data['execution']['paid_calls'] == 0
+          PY
