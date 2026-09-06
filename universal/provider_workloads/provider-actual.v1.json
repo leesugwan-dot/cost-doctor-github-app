@@ -9,13 +9,13 @@
   "fresh_rounds": 2,
   "workloads": [
     {
-      "id": "provider-word-count-v1",
-      "kind": "word_count",
-      "goal": "Return the exact word count as one integer",
+      "id": "provider-integer-product-v1",
+      "kind": "integer_product",
+      "goal": "Multiply every integer in the supplied JSON array and return the exact product as one integer",
       "quality_threshold": 1.0,
       "items": [
-        {"value": "cost signals need evidence", "expected": 4},
-        {"value": "quality protects useful output", "expected": 4}
+        {"value": [2, 3, 4], "expected": 24},
+        {"value": [-2, 5, 3], "expected": -30}
       ]
     },
     {
@@ -32,7 +32,7 @@
   "phase_context": {
     "raw": {
       "repeat": 24,
-      "text": "Authoritative instruction: solve only the supplied public arithmetic fixture. Preserve the exact task, do not call tools, do not explain, and return one base-10 integer with no surrounding text. The acceptance rule is exact numeric equality."
+      "text": "Authoritative instruction: perform only the arithmetic operation named in the goal on the supplied public integer fixture. Preserve the exact task, do not call tools, do not explain, and return one base-10 integer with no surrounding text. The acceptance rule is exact numeric equality."
     },
     "engine": {
       "repeat": 1,

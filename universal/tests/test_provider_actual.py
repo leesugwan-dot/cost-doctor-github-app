@@ -62,7 +62,11 @@ class ProviderActualTests(unittest.TestCase):
             calls.append(payload)
             capsule = json.loads(payload["input"])
             fixture = capsule["public_fixture"]
-            if isinstance(fixture, list):
+            if "Multiply every integer" in capsule["goal"]:
+                answer = 1
+                for value in fixture:
+                    answer *= value
+            elif isinstance(fixture, list):
                 answer = sum(fixture)
             else:
                 answer = len(fixture.split())
