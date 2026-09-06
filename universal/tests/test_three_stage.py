@@ -53,6 +53,12 @@ class ThreeStageTests(unittest.TestCase):
         packet = build_three_stage_packet("three", phases, quality_threshold=1.0, rollback={}, context_receipts={}, claim_scope="test")
         self.assertEqual(packet["claim"]["status"], "BLOCKED")
 
+    def test_actual_runner_is_bound_to_the_current_ci_commit(self):
+        runner = (ROOT / "universal" / "scripts" / "run_optimizer_acceptance.py").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github" / "workflows" / "universal-engine-selftest.yml").read_text(encoding="utf-8")
+        self.assertIn('add_argument("--commit", required=True)', runner)
+        self.assertIn('--commit "${{ github.sha }}"', workflow)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

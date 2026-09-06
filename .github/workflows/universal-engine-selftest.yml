@@ -100,9 +100,11 @@ jobs:
           set -euo pipefail
           python3 universal/scripts/run_optimizer_acceptance.py \
             --output "$RUNNER_TEMP/costdoctor-optimizer-run-a" \
+            --commit "${{ github.sha }}" \
             --run-label ci-a
           python3 universal/scripts/run_optimizer_acceptance.py \
             --output "$RUNNER_TEMP/costdoctor-optimizer-run-b" \
+            --commit "${{ github.sha }}" \
             --run-label ci-b
           python3 universal/scripts/compare_optimizer_runs.py \
             "$RUNNER_TEMP/costdoctor-optimizer-run-a" \

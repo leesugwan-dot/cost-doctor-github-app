@@ -110,7 +110,7 @@ def future_model_evidence(models: ModelRegistry, pricing: PricingEngine) -> dict
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(); parser.add_argument("--output", type=Path, required=True); parser.add_argument("--commit", default="e6f239925395921496c63207de2af60d8d67d6d4"); parser.add_argument("--run-label", default="fresh"); args = parser.parse_args()
+    parser = argparse.ArgumentParser(); parser.add_argument("--output", type=Path, required=True); parser.add_argument("--commit", required=True); parser.add_argument("--run-label", default="fresh"); args = parser.parse_args()
     if args.output.exists() and any(args.output.iterdir()): raise SystemExit("OUTPUT_DIRECTORY_NOT_EMPTY")
     args.output.mkdir(parents=True, exist_ok=True)
     models = ModelRegistry(ROOT / "universal" / "registry" / "models"); providers = ProviderRegistry(ROOT / "universal" / "registry" / "providers"); pricing = PricingEngine(PricingRegistry(ROOT / "universal" / "registry" / "pricing")); importer = UsageImporter(models, providers)

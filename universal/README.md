@@ -50,8 +50,8 @@ Coding-agent profiles live in `registry/agents`; the core packet builder does no
 Run the two public fixture workloads twice and compare their semantic receipts:
 
 ```bash
-python3 universal/scripts/run_optimizer_acceptance.py --output /tmp/optimizer-a --run-label a
-python3 universal/scripts/run_optimizer_acceptance.py --output /tmp/optimizer-b --run-label b
+python3 universal/scripts/run_optimizer_acceptance.py --output /tmp/optimizer-a --commit "$(git rev-parse HEAD)" --run-label a
+python3 universal/scripts/run_optimizer_acceptance.py --output /tmp/optimizer-b --commit "$(git rev-parse HEAD)" --run-label b
 python3 universal/scripts/compare_optimizer_runs.py /tmp/optimizer-a /tmp/optimizer-b --output /tmp/optimizer-fresh.json
 ```
 
