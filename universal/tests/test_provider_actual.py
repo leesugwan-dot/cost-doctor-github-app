@@ -13,7 +13,7 @@ MODULE_SPEC.loader.exec_module(runner)
 
 class ProviderActualTests(unittest.TestCase):
     def setUp(self):
-        self.spec = runner.load_spec(ROOT / "universal" / "workloads" / "provider-actual.v1.json")
+        self.spec = runner.load_spec(ROOT / "universal" / "provider_workloads" / "provider-actual.v1.json")
         self.pricing = runner.PricingRegistry(ROOT / "universal" / "registry" / "pricing")
 
     def test_registry_only_model_and_official_price(self):

@@ -431,7 +431,7 @@ def main() -> int:
     if args.output.exists() and any(args.output.iterdir()):
         raise SystemExit("OUTPUT_DIRECTORY_NOT_EMPTY")
     args.output.mkdir(parents=True, exist_ok=True)
-    spec = load_spec(ROOT / "universal" / "workloads" / "provider-actual.v1.json")
+    spec = load_spec(ROOT / "universal" / "provider_workloads" / "provider-actual.v1.json")
     pricing = PricingRegistry(ROOT / "universal" / "registry" / "pricing")
     forecast = conservative_forecast(spec, pricing)
     key_present = bool(os.environ.get("OPENAI_API_KEY"))
