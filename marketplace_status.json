@@ -1,6 +1,6 @@
 {
-  "schema": "costdoctor.marketplace-readiness.v2",
-  "status": "READY_FOR_OWNER_RELEASE_AND_PUBLISH",
+  "schema": "costdoctor.marketplace-readiness.v3",
+  "status": "PUBLISHED_V1.0.0_DISCOVERY_UPDATE_READY",
   "listing_mode": "FREE_ENTRY_FIRST",
   "root_action_metadata": "action.yml",
   "license": "Apache-2.0",
@@ -13,17 +13,23 @@
     "tag": "v1.0.0",
     "title": "CostDoctor Repository Review v1.0.0"
   },
+  "current_public_release": {
+    "tag": "v1.0.0",
+    "marketplace_url": "https://github.com/marketplace/actions/costdoctor-repository-review"
+  },
+  "recommended_discovery_release": {
+    "tag": "v1.0.1",
+    "title": "CostDoctor AI Cost & Token Review v1.0.1"
+  },
   "deferred_features_not_to_advertise": [
     "automatic_code_modification_or_pr",
     "paid_verified_fix",
     "ai_provider_based_auto_fix"
   ],
-  "external_owner_actions": [
-    "open root action.yml and draft a release",
-    "select Publish this Action to the GitHub Marketplace",
-    "accept GitHub Marketplace Developer Agreement if required",
-    "choose Marketplace category",
-    "set semantic release tag and title",
-    "publish the release with GitHub-required two-factor authentication"
+  "discovery_update_scope": [
+    "buyer-intent Marketplace name and description",
+    "concise README conversion path",
+    "repository description, homepage, and topics",
+    "privacy-safe aggregate user Evidence reporting"
   ]
 }

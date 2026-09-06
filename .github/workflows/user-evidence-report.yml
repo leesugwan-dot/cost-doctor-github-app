@@ -1,0 +1,51 @@
+name: CostDoctor privacy-safe user Evidence report
+
+on:
+  workflow_run:
+    workflows: [CostDoctor public repository scan]
+    types: [completed]
+  schedule:
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: costdoctor-user-evidence-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    if: github.repository == 'leesugwan-dot/cost-doctor-github-app'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted reporting code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Verify reporting privacy invariants
+        run: python3 .github/scripts/test_user_evidence_report.py
+
+      - name: Build aggregate report and notify only on new external Evidence
+        id: evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/user_evidence_report.py --output-dir "$RUNNER_TEMP/costdoctor-user-evidence" --notify
+
+      - name: Keep aggregate Evidence briefly
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: costdoctor-user-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/costdoctor-user-evidence/*
+          if-no-files-found: warn
+          retention-days: 14
+          include-hidden-files: false

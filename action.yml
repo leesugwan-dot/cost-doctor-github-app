@@ -1,5 +1,5 @@
-name: CostDoctor Repository Review
-description: Read-only static repository review. No target-code execution, source upload, API key, or savings claim.
+name: CostDoctor AI Cost & Token Review
+description: Free read-only AI/LLM API cost review (Cost Doctor) for tokens, retries and cache signals. No code upload or API key.
 author: CostDoctor
 branding:
   icon: activity

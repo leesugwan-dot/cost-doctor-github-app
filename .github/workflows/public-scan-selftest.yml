@@ -69,6 +69,8 @@ jobs:
         run: |
           python3 .github/scripts/test_public_scan.py
           python3 .github/scripts/test_budget_guard.py
+          python3 .github/scripts/test_user_evidence_report.py
+          python3 .github/scripts/test_discovery_contract.py
 
       - name: Node syntax checks
         run: |
@@ -92,7 +94,10 @@ jobs:
           script = Path('.github/scripts/public_scan.py').read_text(encoding='utf-8')
           form = Path('.github/ISSUE_TEMPLATE/public-scan.yml').read_text(encoding='utf-8')
           private_workflow = Path('costdoctor-entry/private-repo-selfscan.yml').read_text(encoding='utf-8')
+          user_evidence_workflow = Path('.github/workflows/user-evidence-report.yml').read_text(encoding='utf-8')
+          user_evidence_script = Path('.github/scripts/user_evidence_report.py').read_text(encoding='utf-8')
           root_action = Path('action.yml').read_text(encoding='utf-8')
+          readme = Path('README.md').read_text(encoding='utf-8')
           license_text = Path('LICENSE').read_text(encoding='utf-8')
           notice = Path('NOTICE').read_text(encoding='utf-8')
           privacy = Path('PRIVACY.md').read_text(encoding='utf-8')
@@ -132,13 +137,27 @@ jobs:
           assert readiness['deferred_decisions']['D9_ai_auto_fix_provider_and_code_transfer'] == 'DEFERRED_UNTIL_PUBLIC_REACTION'
           assert 'contents: read' in private_workflow
           assert 'contents: write' not in private_workflow
+          assert 'workflow_run:' in user_evidence_workflow
+          assert 'schedule:' in user_evidence_workflow
+          assert 'actions: read' in user_evidence_workflow
+          assert 'issues: write' in user_evidence_workflow
+          assert 'contents: write' not in user_evidence_workflow
+          assert 'secrets.' not in user_evidence_workflow
+          assert 'aggregate_counts_only' in user_evidence_script
+          assert 'usernames_output' in user_evidence_script
+          assert 'external_telemetry' in user_evidence_script
+          assert 'user Issue bodies or comments' in user_evidence_script
+          assert 'user_issue_bodies_or_comments_output' in user_evidence_script
           assert fix['hard_rules']['automatic_merge'] is False
           assert fix['hard_rules']['direct_default_branch_overwrite'] is False
           assert measured['customer_controls']['operator_receives_secret'] is False
           assert measured['customer_controls']['per_run_budget_approval_required'] is True
           assert measured['budget_guard']['fail_closed'] is True
           assert measured['deferred']['automatic_ai_code_modification'] is True
-          assert marketplace['status'] == 'READY_FOR_OWNER_RELEASE_AND_PUBLISH'
+          assert marketplace['status'] in {
+              'PUBLISHED_V1.0.0_DISCOVERY_UPDATE_READY',
+              'PUBLISHED_V1.0.1',
+          }
           assert marketplace['listing_mode'] == 'FREE_ENTRY_FIRST'
           assert marketplace['recommended_first_release']['tag'] == 'v1.0.0'
           assert 'automatic_code_modification_or_pr' in marketplace['deferred_features_not_to_advertise']
@@ -147,6 +166,12 @@ jobs:
           assert 'using: node24' in root_action
           assert 'main: costdoctor-entry/entry/action.mjs' in root_action
           assert 'branding:' in root_action
+          assert 'AI/LLM API cost review' in root_action
+          assert 'Cost Doctor' in root_action
+          assert 'Free AI/LLM API Cost Review for GitHub' in readme
+          assert 'leesugwan-dot/cost-doctor-github-app@v1.0.1' in readme
+          assert '# Cost Doctor GitHub App' not in readme
+          assert 'D5' not in readme and 'D7' not in readme and 'D9' not in readme
           assert '운영자의 개인 PC' in privacy
           assert '유료화 방식과 가격은 확정하지 않았습니다' in terms
           PY

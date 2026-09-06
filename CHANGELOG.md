@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.1 — Discovery and privacy-safe user Evidence
+
+- Marketplace name and short description now include `AI cost`, `LLM cost`, `Cost Doctor`, token, retry, and cache search terms
+- README first screen now presents the free public scan, Marketplace Action, and private read-only Self-Scan paths directly
+- Earlier GitHub App material moved out of the Marketplace first-time user path and preserved as a separate legacy reference
+- Added a privacy-safe feedback Issue Form
+- Added repository-native user Evidence reporting after public scans and on a daily schedule
+- User Evidence reports aggregate public scan and feedback counts without storing usernames, Issue bodies, customer source, filenames, secrets, or private-repository activity
+- Marketplace installation counts and private Self-Scan users remain `UNKNOWN` because external telemetry stays off
+
+D5 automatic modification/PR, D7 monetization, and D9 external AI-provider automatic fixes remain deferred.
+
 ## Public Beta R2 — 2026-09-06
 
 - 공개 GitHub 저장소 주소 하나로 자동 진단하는 one-link 진입점 유지
