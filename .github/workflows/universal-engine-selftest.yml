@@ -51,6 +51,32 @@ jobs:
           node --check costdoctor-entry/entry/cli.mjs
           node --check costdoctor-entry/entry/scan.mjs
 
+      - name: Root Marketplace Action actual regression
+        id: root-action
+        uses: ./
+        with:
+          repository: '.'
+
+      - name: Assert root Action sanitized outputs
+        shell: bash
+        env:
+          REPORT_DIRECTORY: ${{ steps.root-action.outputs.report-directory }}
+          SCAN_STATUS: ${{ steps.root-action.outputs.scan-status }}
+        run: |
+          set -euo pipefail
+          test "$SCAN_STATUS" = "SCAN_COMPLETE"
+          test -s "$REPORT_DIRECTORY/report.json"
+          test -s "$REPORT_DIRECTORY/report.md"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads((Path(os.environ["REPORT_DIRECTORY"]) / "report.json").read_text(encoding="utf-8"))
+          assert report["savings"]["status"] == "UNKNOWN"
+          assert report["privacy"]["raw_source_output"] is False
+          PY
+
       - name: Two fresh actual runs with independent validation
         shell: bash
         run: |
