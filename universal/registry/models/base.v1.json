@@ -1,0 +1,101 @@
+{
+  "schema": "costdoctor.model-registry.v1",
+  "rows": [
+    {
+      "provider": "generic",
+      "canonical_id": "fixture-basic-v1",
+      "aliases": ["fixture-basic", "basic-latest"],
+      "family": "deterministic-fixture",
+      "version": "1",
+      "status": "active",
+      "context": {"input_tokens": 8192, "output_tokens": 2048},
+      "capabilities": {
+        "reasoning": false,
+        "tools": false,
+        "structured_output": true,
+        "streaming": true,
+        "batch": true,
+        "cache": "prefix",
+        "modalities": ["text"],
+        "capability_score": 1
+      },
+      "limits_metadata": {"scope": "benchmark_fixture", "region_or_account_specific": true},
+      "capability_verified_at": "2026-09-06T00:00:00+00:00"
+    },
+    {
+      "provider": "generic",
+      "canonical_id": "fixture-mid-v1",
+      "aliases": ["fixture-mid", "mid-latest"],
+      "family": "deterministic-fixture",
+      "version": "1",
+      "status": "active",
+      "context": {"input_tokens": 32768, "output_tokens": 8192},
+      "capabilities": {
+        "reasoning": true,
+        "reasoning_modes": ["low", "medium"],
+        "tools": true,
+        "structured_output": true,
+        "streaming": true,
+        "batch": true,
+        "cache": "prefix",
+        "modalities": ["text"],
+        "capability_score": 2
+      },
+      "limits_metadata": {"scope": "benchmark_fixture", "region_or_account_specific": true},
+      "capability_verified_at": "2026-09-06T00:00:00+00:00"
+    },
+    {
+      "provider": "generic",
+      "canonical_id": "fixture-pro-v1",
+      "aliases": ["fixture-pro", "pro-latest"],
+      "family": "deterministic-fixture",
+      "version": "1",
+      "status": "active",
+      "context": {"input_tokens": 131072, "output_tokens": 32768},
+      "capabilities": {
+        "reasoning": true,
+        "reasoning_modes": ["low", "medium", "high"],
+        "tools": true,
+        "structured_output": true,
+        "streaming": true,
+        "batch": true,
+        "cache": "prefix",
+        "modalities": ["text"],
+        "capability_score": 4
+      },
+      "limits_metadata": {"scope": "benchmark_fixture", "region_or_account_specific": true},
+      "capability_verified_at": "2026-09-06T00:00:00+00:00"
+    },
+    {
+      "provider": "generic",
+      "canonical_id": "fixture-retired-v0",
+      "aliases": ["fixture-old"],
+      "family": "deterministic-fixture",
+      "version": "0",
+      "status": "deprecated",
+      "context": {"input_tokens": 4096, "output_tokens": 1024},
+      "capabilities": {"structured_output": true, "capability_score": 1},
+      "capability_verified_at": "2026-09-06T00:00:00+00:00"
+    },
+    {
+      "provider": "ollama",
+      "canonical_id": "local-fixture-v1",
+      "aliases": ["local-fixture"],
+      "family": "local-fixture",
+      "version": "1",
+      "status": "active",
+      "context": {"input_tokens": 8192, "output_tokens": 2048},
+      "capabilities": {
+        "reasoning": false,
+        "tools": false,
+        "structured_output": true,
+        "streaming": true,
+        "batch": false,
+        "cache": "provider_defined",
+        "modalities": ["text"],
+        "capability_score": 1
+      },
+      "capability_verified_at": "2026-09-06T00:00:00+00:00"
+    }
+  ]
+}

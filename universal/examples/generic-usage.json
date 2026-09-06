@@ -1,0 +1,31 @@
+{
+  "events": [
+    {
+      "event_id": "safe-example-1",
+      "sequence": 0,
+      "started_at": "2026-09-06T00:00:00+00:00",
+      "ended_at": "2026-09-06T00:00:01+00:00",
+      "success": true,
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 20,
+        "cached_input_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 0,
+        "tool_calls": 0,
+        "call_count": 1,
+        "retry_count": 0
+      },
+      "latency_ms": 1000,
+      "provider_reported": false,
+      "measurement_source": "CUSTOMER_EXPORT",
+      "input_fingerprint": "5ea2ed298e3e41616f177228f025711d5fdfe0b5502addb4451b2506f1075ac7",
+      "context_fingerprint": "e0e174f740b5556489de80e0f898b0bbb6100b053441047fb9c44f271f663ba0",
+      "quality_score": 1.0,
+      "cache_hit": false,
+      "metadata": {
+        "example_only": true
+      }
+    }
+  ]
+}

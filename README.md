@@ -86,6 +86,8 @@ External telemetry remains off. A repository-native workflow reports only aggreg
 
 [Public scan guide](docs/PUBLIC_SCAN.md) · [Visual quick start](costdoctor-entry/docs/QUICKSTART_VISUAL.md) · [Screen guide](costdoctor-entry/docs/SCREEN_GUIDE.md) · [Result example](costdoctor-entry/examples/report.md) · [FAQ](costdoctor-entry/docs/FAQ.md) · [Troubleshooting](costdoctor-entry/docs/TROUBLESHOOTING.md) · [Rollback](costdoctor-entry/docs/ROLLBACK.md)
 
+[Universal offline usage Evidence, Registry pricing, benchmark, quality guard, routing advice, and independent validation](universal/README.md)
+
 [Privacy](PRIVACY.md) · [Terms](TERMS.md) · [Operator policy](OPERATOR_POLICY.md) · [Security](SECURITY.md) · [Support](SUPPORT.md) · [Apache-2.0 license](LICENSE)
 
 Earlier GitHub App research is preserved separately as [legacy reference material](docs/LEGACY_GITHUB_APP_REFERENCE.md); it is not the current Marketplace Action.

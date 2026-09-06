@@ -1,0 +1,27 @@
+{
+  "schema": "costdoctor.model-registry.v1",
+  "rows": [
+    {
+      "provider": "generic",
+      "canonical_id": "future-model-x",
+      "aliases": ["future-x-preview"],
+      "family": "unknown-future-family",
+      "version": "unknown",
+      "status": "preview",
+      "context": {"input_tokens": null, "output_tokens": null},
+      "capabilities": {
+        "reasoning": null,
+        "tools": null,
+        "structured_output": null,
+        "streaming": null,
+        "batch": null,
+        "cache": "unknown",
+        "modalities": ["unknown"],
+        "capability_score": null
+      },
+      "limits_metadata": {"status": "unknown"},
+      "capability_verified_at": null,
+      "pricing_status": "unknown"
+    }
+  ]
+}

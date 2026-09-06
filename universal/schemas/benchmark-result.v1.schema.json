@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://costdoctor.dev/schemas/benchmark-result.v1.schema.json",
+  "title": "CostDoctor Benchmark Result v1",
+  "type": "object",
+  "required": ["schema", "workload_id", "bindings", "before", "after", "quality", "claim", "producer_digest"],
+  "properties": {
+    "schema": {"const": "costdoctor.benchmark-evidence.v1"},
+    "claim": {"type": "object"},
+    "producer_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "additionalProperties": true
+}

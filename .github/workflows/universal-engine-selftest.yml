@@ -1,0 +1,84 @@
+name: CostDoctor universal engine self-test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'universal/**'
+      - '.github/workflows/universal-engine-selftest.yml'
+  pull_request:
+    paths:
+      - 'universal/**'
+      - '.github/workflows/universal-engine-selftest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: costdoctor-universal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-actual-independent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout this repository only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Universal unit and boundary tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q universal
+          python3 -m unittest discover -s universal/tests -p 'test_*.py' -v
+
+      - name: Existing public feature regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/test_public_scan.py
+          python3 .github/scripts/test_budget_guard.py
+          python3 .github/scripts/test_user_evidence_report.py
+          python3 .github/scripts/test_discovery_contract.py
+          node --check costdoctor-entry/entry/action.mjs
+          node --check costdoctor-entry/entry/cli.mjs
+          node --check costdoctor-entry/entry/scan.mjs
+
+      - name: Two fresh actual runs with independent validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 universal/scripts/run_acceptance.py --output "$RUNNER_TEMP/costdoctor-universal-run-a"
+          python3 universal/scripts/run_acceptance.py --output "$RUNNER_TEMP/costdoctor-universal-run-b"
+          python3 universal/scripts/independent_validate_run.py \
+            "$RUNNER_TEMP/costdoctor-universal-run-a" \
+            --output "$RUNNER_TEMP/costdoctor-universal-independent-a.json"
+          python3 universal/scripts/independent_validate_run.py \
+            "$RUNNER_TEMP/costdoctor-universal-run-b" \
+            --output "$RUNNER_TEMP/costdoctor-universal-independent-b.json"
+          python3 universal/scripts/compare_fresh_runs.py \
+            "$RUNNER_TEMP/costdoctor-universal-run-a" \
+            "$RUNNER_TEMP/costdoctor-universal-run-b" \
+            --output "$RUNNER_TEMP/costdoctor-universal-fresh-rerun.json"
+
+      - name: Keep sanitized Evidence briefly
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: costdoctor-universal-evidence
+          path: |
+            ${{ runner.temp }}/costdoctor-universal-run-a
+            ${{ runner.temp }}/costdoctor-universal-run-b
+            ${{ runner.temp }}/costdoctor-universal-independent-a.json
+            ${{ runner.temp }}/costdoctor-universal-independent-b.json
+            ${{ runner.temp }}/costdoctor-universal-fresh-rerun.json
+          if-no-files-found: error
+          retention-days: 1
+          include-hidden-files: false

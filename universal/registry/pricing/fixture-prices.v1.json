@@ -1,0 +1,65 @@
+{
+  "schema": "costdoctor.pricing-registry.v1",
+  "rows": [
+    {
+      "provider": "generic",
+      "model": "fixture-basic-v1",
+      "price_version": "fixture-2026-09-06",
+      "effective_from": "2026-01-01T00:00:00+00:00",
+      "effective_to": null,
+      "status": "confirmed",
+      "source": "CostDoctor deterministic benchmark fixture; not an external provider price",
+      "verified_at": "2026-09-06T00:00:00+00:00",
+      "unit_rates_usd": {"input_tokens": 0.5, "output_tokens": 1.5, "cached_input_tokens": 0.05, "cache_write_tokens": 0.25, "reasoning_tokens": 0.5, "tool_calls": 0.0001},
+      "custom_unit_rates_usd": {},
+      "batch_discount_fraction": 0.5,
+      "request_minimum_usd": 0,
+      "rounding_decimals": 9
+    },
+    {
+      "provider": "generic",
+      "model": "fixture-mid-v1",
+      "price_version": "fixture-2026-09-06",
+      "effective_from": "2026-01-01T00:00:00+00:00",
+      "effective_to": null,
+      "status": "confirmed",
+      "source": "CostDoctor deterministic benchmark fixture; not an external provider price",
+      "verified_at": "2026-09-06T00:00:00+00:00",
+      "unit_rates_usd": {"input_tokens": 2, "output_tokens": 6, "cached_input_tokens": 0.2, "cache_write_tokens": 1, "reasoning_tokens": 2, "tool_calls": 0.0005},
+      "custom_unit_rates_usd": {},
+      "batch_discount_fraction": 0.5,
+      "request_minimum_usd": 0,
+      "rounding_decimals": 9
+    },
+    {
+      "provider": "generic",
+      "model": "fixture-pro-v1",
+      "price_version": "fixture-2026-09-06",
+      "effective_from": "2026-01-01T00:00:00+00:00",
+      "effective_to": null,
+      "status": "confirmed",
+      "source": "CostDoctor deterministic benchmark fixture; not an external provider price",
+      "verified_at": "2026-09-06T00:00:00+00:00",
+      "unit_rates_usd": {"input_tokens": 10, "output_tokens": 30, "cached_input_tokens": 1, "cache_write_tokens": 5, "reasoning_tokens": 10, "tool_calls": 0.002},
+      "custom_unit_rates_usd": {},
+      "batch_discount_fraction": 0.5,
+      "request_minimum_usd": 0,
+      "rounding_decimals": 9
+    },
+    {
+      "provider": "ollama",
+      "model": "local-fixture-v1",
+      "price_version": "explicit-local-zero-2026-09-06",
+      "effective_from": "2026-01-01T00:00:00+00:00",
+      "effective_to": null,
+      "status": "explicit_zero",
+      "source": "Explicit local fixture cost; electricity and hardware cost excluded",
+      "verified_at": "2026-09-06T00:00:00+00:00",
+      "unit_rates_usd": {"input_tokens": 0, "output_tokens": 0, "cached_input_tokens": 0, "cache_write_tokens": 0, "reasoning_tokens": 0, "tool_calls": 0},
+      "custom_unit_rates_usd": {},
+      "batch_discount_fraction": 0,
+      "request_minimum_usd": 0,
+      "rounding_decimals": 9
+    }
+  ]
+}

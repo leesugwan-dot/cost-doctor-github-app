@@ -1,0 +1,37 @@
+{
+  "schema": "costdoctor.benchmark-workload.v1",
+  "id": "repeated-context-actual-v1",
+  "kind": "word_count",
+  "goal": "Return the exact word count for each supplied public fixture string",
+  "quality_criteria": "exact_match",
+  "quality_threshold": 1.0,
+  "latency_limit_ms": 1000,
+  "tool_permissions": [],
+  "repetitions": 3,
+  "items": [
+    {"value": "cost signals need evidence", "expected": 4},
+    {"value": "cost signals need evidence", "expected": 4},
+    {"value": "cache repeated safe prefix", "expected": 4},
+    {"value": "cache repeated safe prefix", "expected": 4},
+    {"value": "quality protects useful output", "expected": 4},
+    {"value": "quality protects useful output", "expected": 4}
+  ],
+  "before": {
+    "provider": "generic",
+    "model": "fixture-mid",
+    "system_context_tokens": 1200,
+    "cache_enabled": false,
+    "retry_count": 1,
+    "max_output_tokens": 512,
+    "summary_used": false
+  },
+  "after": {
+    "provider": "generic",
+    "model": "fixture-mid",
+    "system_context_tokens": 120,
+    "cache_enabled": true,
+    "retry_count": 0,
+    "max_output_tokens": 64,
+    "summary_used": true
+  }
+}

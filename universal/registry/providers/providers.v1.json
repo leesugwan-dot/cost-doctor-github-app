@@ -1,0 +1,41 @@
+{
+  "schema": "costdoctor.provider-registry.v1",
+  "rows": [
+    {
+      "provider": "generic",
+      "adapter": "generic_v1",
+      "mode": "offline_import",
+      "capabilities": {"status": "data_driven"}
+    },
+    {
+      "provider": "openai",
+      "adapter": "openai_v1",
+      "mode": "offline_import",
+      "capabilities": {"usage": true, "cache": true, "reasoning": true, "tools": true}
+    },
+    {
+      "provider": "anthropic",
+      "adapter": "anthropic_v1",
+      "mode": "offline_import",
+      "capabilities": {"usage": true, "cache": true, "reasoning": "provider_defined", "tools": true}
+    },
+    {
+      "provider": "gemini",
+      "adapter": "gemini_v1",
+      "mode": "offline_import",
+      "capabilities": {"usage": true, "cache": true, "reasoning": true, "tools": true}
+    },
+    {
+      "provider": "agnes",
+      "adapter": "agnes_v1",
+      "mode": "offline_import",
+      "capabilities": {"usage": "generic_contract", "cache": "provider_defined", "reasoning": "provider_defined", "tools": "provider_defined"}
+    },
+    {
+      "provider": "ollama",
+      "adapter": "ollama_v1",
+      "mode": "offline_import",
+      "capabilities": {"usage": true, "local": true, "cost": "zero_or_user_defined"}
+    }
+  ]
+}

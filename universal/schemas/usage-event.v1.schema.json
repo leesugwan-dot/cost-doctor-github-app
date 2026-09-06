@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://costdoctor.dev/schemas/usage-event.v1.schema.json",
+  "title": "CostDoctor Usage Event v1",
+  "type": "object",
+  "required": ["event_id", "workload_id", "run_id", "sequence", "provider", "model", "started_at", "ended_at", "success", "usage", "latency_ms", "source_binding", "environment_fingerprint", "workload_fingerprint"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "workload_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "sequence": {"type": "integer", "minimum": 0},
+    "provider": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "success": {"type": "boolean"},
+    "usage": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0}},
+    "provider_reported": {"type": "boolean"},
+    "measurement_source": {"enum": ["PROVIDER_RESPONSE", "CUSTOMER_EXPORT", "GITHUB_ARTIFACT", "COSTDOCTOR_EVIDENCE", "OFFLINE_IMPORT", "LOCAL_DETERMINISTIC_ACTUAL_RUN"]},
+    "source_binding": {"type": "object", "required": ["commit"]}
+  },
+  "additionalProperties": true
+}

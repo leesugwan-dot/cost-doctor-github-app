@@ -1,5 +1,16 @@
 # Changelog
 
+## Universal Engine R1 — 2026-09-06
+
+- Added data-driven Model, Pricing, and Provider registries without changing the existing Marketplace Action identity
+- Added offline adapters for Generic, OpenAI, Anthropic, Gemini, Agnes, and Ollama usage exports
+- Added privacy-safe runtime Usage Evidence, append-only receipts, broad measured waste detectors, bound Before/After benchmarks, Quality Guard, Routing Advisor, and separate Independent Validator
+- Added fixture-scoped Verified Savings binding, actual rollback/reapply runs, and CostDoctor self-dogfood measurements
+- Added a `future-model-x` Registry-only compatibility gate; unknown pricing remains `UNKNOWN/BLOCKED`
+- Added a read-only GitHub self-test that performs two separate fresh actual acceptance runs with one-day sanitized Artifact retention
+
+The public Action, public scanner, private read-only Self-Scan, external-telemetry-off policy, no-write defaults, D5/D7/D9 deferrals, and paid-run approval boundary remain unchanged.
+
 ## v1.0.1 — Discovery and privacy-safe user Evidence
 
 - Marketplace identity name stays stable while its short description adds `AI cost`, `LLM cost`, `Cost Doctor`, token, retry, and cache search terms
