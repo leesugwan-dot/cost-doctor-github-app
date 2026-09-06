@@ -22,8 +22,14 @@ from costdoctor.github_guard import inspect_github_boundaries  # noqa: E402
 from costdoctor.pricing import PricingEngine  # noqa: E402
 from costdoctor.registry import ModelRegistry, PricingRegistry, ProviderRegistry  # noqa: E402
 from costdoctor.report import render_report  # noqa: E402
+from costdoctor.report_validator import validate_user_report  # noqa: E402
 from costdoctor.routing import advise_routing  # noqa: E402
 from costdoctor.self_dogfood import artifact_size, environment_fingerprint, measure_self_dogfood  # noqa: E402
+from costdoctor.user_report import (  # noqa: E402
+    build_user_report,
+    render_user_report_html,
+    render_user_summary_markdown,
+)
 from costdoctor.validator import validate_packet  # noqa: E402
 from costdoctor.verified_fix import prepare_verified_fix_plan  # noqa: E402
 from costdoctor.workloads import (  # noqa: E402
@@ -101,6 +107,37 @@ def price_events(events: list[dict[str, Any]], engine: PricingEngine) -> list[di
 def stable_metrics(events: list[dict[str, Any]], prices: list[dict[str, Any]]) -> tuple[dict[str, Any], str]:
     metrics = summarize_metrics(events, prices)
     return metrics, deterministic_metrics_fingerprint(metrics)
+
+
+def write_user_report_bundle(
+    target: Path,
+    packet: dict[str, Any],
+    validation: dict[str, Any],
+    application_state: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    report = build_user_report(packet, validation, application_state)
+    easy_html = render_user_report_html(report)
+    print_html = render_user_report_html(report, printable=True)
+    regenerated = build_user_report(packet, validation, application_state)
+    regenerated_easy = render_user_report_html(regenerated)
+    regenerated_print = render_user_report_html(regenerated, printable=True)
+    report_validation = validate_user_report(
+        packet,
+        validation,
+        report,
+        easy_html,
+        print_html,
+        expected_application_state=application_state,
+        regenerated_report=regenerated,
+        regenerated_easy_html=regenerated_easy,
+        regenerated_print_html=regenerated_print,
+    )
+    write_json(target / "user_report.json", report)
+    write_json(target / "user_report_independent_validation.json", report_validation)
+    (target / "EASY_REPORT.html").write_text(easy_html, encoding="utf-8")
+    (target / "PRINT_REPORT.html").write_text(print_html, encoding="utf-8")
+    (target / "USER_SUMMARY.md").write_text(render_user_summary_markdown(report), encoding="utf-8")
+    return report, report_validation
 
 
 def run_benchmark(
@@ -191,6 +228,9 @@ def run_benchmark(
     write_json(target / "verified_claim.json", verified_claim)
     (target / "report.ko.md").write_text(render_report(packet, validation, "ko"), encoding="utf-8")
     (target / "report.en.md").write_text(render_report(packet, validation, "en"), encoding="utf-8")
+    user_report, report_validation = write_user_report_bundle(
+        target, packet, validation, "APPLIED_AND_VERIFIED"
+    )
     return {
         "workload_id": spec["id"],
         "actual_phases": ["before", "after", "rollback-before", "reapply-after"],
@@ -202,6 +242,9 @@ def run_benchmark(
         "quality_verdict": packet["quality"]["verdict"],
         "rollback_verdict": rollback["actual_status"],
         "independent_validation": validation["verdict"],
+        "user_report_independent_validation": report_validation["verdict"],
+        "user_report_facts_digest": sha256_json(user_report["facts"]),
+        "user_report_deterministic": report_validation["deterministic_regeneration"] == "PASS",
         "verified_savings_usd": validation["verified_savings_usd"],
         "routing_verdict": routing["verdict"],
         "detector_count": len(detectors),
@@ -315,9 +358,16 @@ def future_model_test(
         "unknown_verified_savings_usd": validation["verified_savings_usd"],
         "data_only_price_recalculation_status": recalculated["status"],
         "data_only_price_recalculation_cost_usd": recalculated["cost_usd"],
-        "report_generation": "PASS" if render_report(packet, validation, "ko") else "FAIL",
+        "report_generation": "PENDING",
         "rollback_actual": rollback["actual_status"],
     }
+    future_target = output / "future_model"
+    user_report, report_validation = write_user_report_bundle(
+        future_target, packet, validation, "NOT_APPLICABLE"
+    )
+    result["report_generation"] = "PASS" if user_report else "FAIL"
+    result["user_report_independent_validation"] = report_validation["verdict"]
+    result["user_report_facts_digest"] = sha256_json(user_report["facts"])
     result["verdict"] = "PASS" if all(
         [
             result["model_resolved_from_registry"],
@@ -330,6 +380,7 @@ def future_model_test(
             result["unknown_verified_savings_usd"] is None,
             result["data_only_price_recalculation_status"] == "MEASURED_PRICE_APPLIED",
             result["report_generation"] == "PASS",
+            result["user_report_independent_validation"] == "PASS",
             result["rollback_actual"] == "PASS",
         ]
     ) else "FAIL"
@@ -402,6 +453,10 @@ def main() -> int:
     checks = {
         "two_actual_workloads": len(workloads) >= 2,
         "all_workloads_independently_validated": all(item["independent_validation"] == "PASS" for item in workloads),
+        "all_user_reports_independently_validated": all(
+            item["user_report_independent_validation"] == "PASS" for item in workloads
+        ),
+        "all_user_reports_deterministic": all(item["user_report_deterministic"] for item in workloads),
         "all_quality_guards_pass": all(item["quality_verdict"] == "PASS" for item in workloads),
         "all_rollbacks_actual_pass": all(item["rollback_verdict"] == "PASS" for item in workloads),
         "all_receipt_chains_pass": all(item["receipt_chains_verified"] for item in workloads),

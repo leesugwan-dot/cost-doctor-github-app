@@ -41,7 +41,20 @@ def main() -> int:
             == second_workloads.get(key, {}).get("verified_savings_usd")
             for key in first_workloads
         ),
+        "stable_user_report_facts": all(
+            first_workloads[key]["user_report_facts_digest"]
+            == second_workloads.get(key, {}).get("user_report_facts_digest")
+            for key in first_workloads
+        ),
+        "all_user_reports_validated": all(
+            first_workloads[key]["user_report_independent_validation"]
+            == second_workloads.get(key, {}).get("user_report_independent_validation")
+            == "PASS"
+            for key in first_workloads
+        ),
         "future_model_pass_both_runs": first["future_model"]["verdict"] == second["future_model"]["verdict"] == "PASS",
+        "future_model_report_stable": first["future_model"]["user_report_facts_digest"]
+        == second["future_model"]["user_report_facts_digest"],
     }
     result = {
         "schema": "costdoctor.fresh-independent-rerun.v1",

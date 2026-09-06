@@ -20,6 +20,8 @@ This additive, offline engine turns runtime usage exports into evidence-bound co
 - `costdoctor/detectors.py`: measured waste signals across calls, context, retry, cache, tools, agents, and infrastructure
 - `costdoctor/benchmark.py`: bound Before/After metrics and quality gate
 - `costdoctor/validator.py`: separate price, binding, digest, rollback, and savings recomputation
+- `costdoctor/user_report.py`: deterministic 10-second, 1-minute, HTML, and print-friendly user reports
+- `costdoctor/report_validator.py`: independent report fact, rendering parity, determinism, and leak validation
 
 Adding a conventional new model requires Registry data, not a model-name branch in core code. A new billing dimension, protocol, or capability class may require a versioned contract extension.
 
@@ -53,6 +55,8 @@ python3 universal/scripts/compare_fresh_runs.py /tmp/costdoctor-run-a /tmp/costd
 ```
 
 The `future-model-x` compatibility case is intentionally defined only in `registry/models/future-model-x.v1.json`. Without a matching price row it completes ingest and reporting but returns `UNKNOWN/BLOCKED`. The acceptance runner then adds a temporary Registry price row outside the repository and proves recalculation without changing core code.
+
+Each actual workload also emits `USER_SUMMARY.md`, `EASY_REPORT.html`, `PRINT_REPORT.html`, a normalized user-report record, and an independent report-validation result. The screen and print renderers expose the same recomputed facts, show trust and application state explicitly, and omit internal paths, hashes, raw JSON, source, secrets, and personal data from the default view.
 
 ## Verified Savings meaning
 

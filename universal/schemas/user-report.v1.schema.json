@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://costdoctor.dev/schemas/user-report.v1.schema.json",
+  "title": "CostDoctor user report",
+  "type": "object",
+  "required": [
+    "schema",
+    "report_schema_version",
+    "generated_at",
+    "language",
+    "title",
+    "facts",
+    "summary_10_seconds",
+    "explanation_1_minute",
+    "details",
+    "privacy"
+  ],
+  "properties": {
+    "schema": {"const": "costdoctor.user-report.v1"},
+    "report_schema_version": {"const": "1.0.0"},
+    "language": {"const": "ko"},
+    "facts": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "trust_level",
+        "application_state",
+        "before_cost_usd",
+        "after_cost_usd",
+        "verified_savings_usd",
+        "savings_rate_percent",
+        "quality_before",
+        "quality_after",
+        "quality_verdict",
+        "rollback_status",
+        "pricing_status_before",
+        "pricing_status_after",
+        "independent_validation"
+      ],
+      "properties": {
+        "trust_level": {"enum": ["VERIFIED", "MEASURED", "ESTIMATED", "BILLING_CONFIRMED", "STATIC_SIGNAL", "UNKNOWN", "BLOCKED"]},
+        "application_state": {"enum": ["APPLIED_AND_VERIFIED", "PROPOSED_ONLY", "APPLY_FAILED", "ROLLED_BACK", "NOT_APPLICABLE"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}
