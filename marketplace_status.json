@@ -19,7 +19,7 @@
   },
   "recommended_discovery_release": {
     "tag": "v1.0.1",
-    "title": "CostDoctor AI Cost & Token Review v1.0.1"
+    "title": "CostDoctor Repository Review v1.0.1"
   },
   "deferred_features_not_to_advertise": [
     "automatic_code_modification_or_pr",
@@ -27,7 +27,7 @@
     "ai_provider_based_auto_fix"
   ],
   "discovery_update_scope": [
-    "buyer-intent Marketplace name and description",
+    "stable Marketplace identity with buyer-intent description",
     "concise README conversion path",
     "repository description, homepage, and topics",
     "privacy-safe aggregate user Evidence reporting"

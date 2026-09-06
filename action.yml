@@ -1,4 +1,4 @@
-name: CostDoctor AI Cost & Token Review
+name: CostDoctor Repository Review
 description: Free read-only AI/LLM API cost review (Cost Doctor) for tokens, retries and cache signals. No code upload or API key.
 author: CostDoctor
 branding:

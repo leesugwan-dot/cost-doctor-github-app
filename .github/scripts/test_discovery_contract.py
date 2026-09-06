@@ -15,7 +15,7 @@ class DiscoveryContractTests(unittest.TestCase):
     def test_marketplace_metadata_and_conversion_path(self):
         action = self.text("action.yml")
         readme = self.text("README.md")
-        self.assertIn("CostDoctor AI Cost & Token Review", action)
+        self.assertIn("name: CostDoctor Repository Review", action)
         self.assertIn("AI/LLM API cost review", action)
         self.assertIn("Cost Doctor", action)
         self.assertIn("using: node24", action)
