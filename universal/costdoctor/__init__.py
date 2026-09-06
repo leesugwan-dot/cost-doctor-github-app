@@ -1,3 +1,3 @@
-"""CostDoctor model-independent offline cost and waste analysis engine."""
+"""CostDoctor model-independent context, usage, cost, and waste verification engine."""
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://costdoctor.dev/schemas/capsules.v1.schema.json",
+  "title": "CostDoctor Universal Capsule",
+  "type": "object",
+  "required": ["schema", "capsule_fingerprint"],
+  "properties": {
+    "schema": {"type": "string", "pattern": "^costdoctor\\.(task|state|context|evidence|delta|usage)-capsule\\.v1$"},
+    "capsule_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "additionalProperties": true
+}

@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from .canonical import canonical_json
+from .context_optimizer import optimize_context
 from .evidence import UsageImporter, load_json_or_jsonl
 from .pricing import PricingEngine
 from .registry import ModelRegistry, PricingRegistry, ProviderRegistry
+from .three_stage_validator import validate_three_stage
 from .validator import validate_packet
 
 
@@ -58,6 +60,22 @@ def _validate(args: argparse.Namespace) -> int:
     return 0 if result["verdict"] == "PASS" else 2
 
 
+def _optimize_context(args: argparse.Namespace) -> int:
+    request = json.loads(args.input.read_text(encoding="utf-8"))
+    result = optimize_context(request["task"], request["state"], request["entries"], int(request["token_budget"]), previous_context=request.get("previous_context"))
+    _write(args.output, result)
+    print(canonical_json({"verdict": result["retention_check"]["verdict"], "measurement_grade": result["token_budget"]["measurement_grade"], "output": str(args.output)}))
+    return 0
+
+
+def _validate_three_stage(args: argparse.Namespace) -> int:
+    packet = json.loads(args.input.read_text(encoding="utf-8"))
+    result = validate_three_stage(packet)
+    _write(args.output, result)
+    print(canonical_json({"verdict": result["verdict"], "output": str(args.output)}))
+    return 0 if result["verdict"] == "PASS" else 2
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CostDoctor Universal offline evidence tools")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -77,6 +95,14 @@ def main(argv: list[str] | None = None) -> int:
     validate.add_argument("--output", type=Path, required=True)
     validate.add_argument("--max-age-seconds", type=int, default=3600)
     validate.set_defaults(handler=_validate)
+    context = sub.add_parser("optimize-context", help="Build a deterministic, loss-guarded runtime context capsule")
+    context.add_argument("--input", type=Path, required=True)
+    context.add_argument("--output", type=Path, required=True)
+    context.set_defaults(handler=_optimize_context)
+    three_stage = sub.add_parser("validate-three-stage", help="Independently recompute a RAW/ENGINE/ENGINE+CostDoctor packet")
+    three_stage.add_argument("--input", type=Path, required=True)
+    three_stage.add_argument("--output", type=Path, required=True)
+    three_stage.set_defaults(handler=_validate_three_stage)
     args = parser.parse_args(argv)
     return int(args.handler(args))
 

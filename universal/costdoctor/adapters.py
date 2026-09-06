@@ -3,6 +3,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from .measurement import classify_measurement
+
 
 def _nested(payload: dict[str, Any], *path: str, default: Any = 0) -> Any:
     value: Any = payload
@@ -82,6 +84,8 @@ class ProviderAdapter:
             "billed_units": self.normalize_billing_units(payload),
             "provider_reported": bool(payload.get("provider_reported", False)),
             "measurement_source": str(payload.get("measurement_source", "OFFLINE_IMPORT")),
+            "provider_response_id": str(payload.get("provider_response_id", "")),
+            "tokenizer": deepcopy(payload.get("tokenizer") or {}),
             "latency_ms": self.normalize_latency(payload),
             "cache_hit": cache["cache_hit"],
             "tool_sequence": self.normalize_tool_usage(payload)["tool_sequence"],
@@ -94,6 +98,7 @@ class ProviderAdapter:
             "metadata": deepcopy(payload.get("metadata") or {}),
             "batch": bool(payload.get("batch", False)),
         }
+        event["measurement"] = classify_measurement(event)
         return event
 
 
@@ -106,14 +111,25 @@ class OpenAIAdapter(ProviderAdapter):
 
     def normalize_usage(self, payload: dict[str, Any]) -> dict[str, int]:
         usage = payload.get("usage") or {}
-        cached = int(_nested(usage, "prompt_tokens_details", "cached_tokens"))
-        prompt = int(usage.get("prompt_tokens", 0))
+        responses_shape = "input_tokens" in usage or "output_tokens" in usage
+        if responses_shape:
+            cached = int(_nested(usage, "input_tokens_details", "cached_tokens"))
+            cache_write = int(_nested(usage, "input_tokens_details", "cache_write_tokens"))
+            input_total = int(usage.get("input_tokens", 0))
+            output_total = int(usage.get("output_tokens", 0))
+            reasoning = int(_nested(usage, "output_tokens_details", "reasoning_tokens"))
+        else:
+            cached = int(_nested(usage, "prompt_tokens_details", "cached_tokens"))
+            cache_write = 0
+            input_total = int(usage.get("prompt_tokens", 0))
+            output_total = int(usage.get("completion_tokens", 0))
+            reasoning = int(_nested(usage, "completion_tokens_details", "reasoning_tokens"))
         return {
-            "input_tokens": max(0, prompt - cached),
-            "output_tokens": int(usage.get("completion_tokens", 0)),
+            "input_tokens": max(0, input_total - cached - cache_write),
+            "output_tokens": max(0, output_total - reasoning),
             "cached_input_tokens": cached,
-            "cache_write_tokens": 0,
-            "reasoning_tokens": int(_nested(usage, "completion_tokens_details", "reasoning_tokens")),
+            "cache_write_tokens": cache_write,
+            "reasoning_tokens": reasoning,
             "tool_calls": int(payload.get("tool_call_count", 0)),
             "call_count": int(payload.get("call_count", 1)),
             "retry_count": int(payload.get("retry_count", 0)),

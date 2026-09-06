@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://costdoctor.dev/schemas/three-stage-result.v1.schema.json",
+  "title": "CostDoctor RAW-ENGINE-ENGINE+CostDoctor Benchmark",
+  "type": "object",
+  "required": ["schema", "workload_id", "phases", "quality_gate", "binding", "rollback", "claim", "producer_digest"],
+  "properties": {
+    "schema": {"const": "costdoctor.three-stage-benchmark.v1"},
+    "workload_id": {"type": "string", "minLength": 1},
+    "phases": {"type": "object", "required": ["raw", "engine", "engine_costdoctor"], "properties": {"raw": {"$ref": "#/$defs/phase"}, "engine": {"$ref": "#/$defs/phase"}, "engine_costdoctor": {"$ref": "#/$defs/phase"}}, "additionalProperties": false},
+    "claim": {"type": "object", "required": ["status", "grade", "savings", "overhead_included"]},
+    "producer_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {"phase": {"type": "object", "required": ["events", "prices", "binding", "metrics", "overhead", "net_cost_usd", "measurement", "quality"]}},
+  "additionalProperties": true
+}

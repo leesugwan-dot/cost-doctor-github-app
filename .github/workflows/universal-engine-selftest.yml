@@ -94,6 +94,21 @@ jobs:
             "$RUNNER_TEMP/costdoctor-universal-run-b" \
             --output "$RUNNER_TEMP/costdoctor-universal-fresh-rerun.json"
 
+      - name: Universal context optimizer three-stage verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 universal/scripts/run_optimizer_acceptance.py \
+            --output "$RUNNER_TEMP/costdoctor-optimizer-run-a" \
+            --run-label ci-a
+          python3 universal/scripts/run_optimizer_acceptance.py \
+            --output "$RUNNER_TEMP/costdoctor-optimizer-run-b" \
+            --run-label ci-b
+          python3 universal/scripts/compare_optimizer_runs.py \
+            "$RUNNER_TEMP/costdoctor-optimizer-run-a" \
+            "$RUNNER_TEMP/costdoctor-optimizer-run-b" \
+            --output "$RUNNER_TEMP/costdoctor-optimizer-fresh-rerun.json"
+
       - name: Keep sanitized Evidence briefly
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -105,6 +120,9 @@ jobs:
             ${{ runner.temp }}/costdoctor-universal-independent-a.json
             ${{ runner.temp }}/costdoctor-universal-independent-b.json
             ${{ runner.temp }}/costdoctor-universal-fresh-rerun.json
+            ${{ runner.temp }}/costdoctor-optimizer-run-a
+            ${{ runner.temp }}/costdoctor-optimizer-run-b
+            ${{ runner.temp }}/costdoctor-optimizer-fresh-rerun.json
           if-no-files-found: error
           retention-days: 1
           include-hidden-files: false

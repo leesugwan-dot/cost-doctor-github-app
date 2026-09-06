@@ -1,0 +1,8 @@
+{
+  "schema": "costdoctor.coding-agent-registry.v1",
+  "rows": [
+    {"agent_id": "codex", "packet_contract": "costdoctor.coding-agent-packet.v1", "capabilities": {"selective_read": true, "repo_map": true, "task_capsule": true, "state_capsule": true, "evidence_capsule": true}, "usage_contract": {"measurement_source": "CODEX_AVAILABLE_USAGE", "provider_authentication_asserted": false}, "session_reset": {"mode": "state_capsule", "trigger": "context_budget_or_task_boundary"}},
+    {"agent_id": "claude-code", "packet_contract": "costdoctor.coding-agent-packet.v1", "capabilities": {"selective_read": true, "repo_map": true, "task_capsule": true, "state_capsule": true, "evidence_capsule": true}, "usage_contract": {"measurement_source": "CLAUDE_CODE_AVAILABLE_USAGE", "provider_authentication_asserted": false}, "session_reset": {"mode": "state_capsule", "trigger": "context_budget_or_task_boundary"}},
+    {"agent_id": "generic-coding-agent", "packet_contract": "costdoctor.coding-agent-packet.v1", "capabilities": {"selective_read": true, "repo_map": true, "task_capsule": true, "state_capsule": true, "evidence_capsule": true}, "usage_contract": {"measurement_source": "AVAILABLE_TOOL_USAGE", "provider_authentication_asserted": false}, "session_reset": {"mode": "state_capsule", "trigger": "context_budget_or_task_boundary"}}
+  ]
+}
