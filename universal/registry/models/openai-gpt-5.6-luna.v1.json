@@ -1,0 +1,34 @@
+{
+  "schema": "costdoctor.model-registry.v1",
+  "rows": [
+    {
+      "provider": "openai",
+      "canonical_id": "gpt-5.6-luna",
+      "aliases": [],
+      "family": "gpt-5.6",
+      "version": "luna",
+      "status": "active",
+      "context": {
+        "input_tokens": 1050000,
+        "output_tokens": 128000
+      },
+      "capabilities": {
+        "reasoning": true,
+        "reasoning_modes": ["none", "low", "medium", "high", "xhigh", "max"],
+        "tools": true,
+        "structured_output": true,
+        "streaming": true,
+        "batch": true,
+        "cache": "provider_defined",
+        "modalities": ["text", "image_input"],
+        "capability_score": 2
+      },
+      "limits_metadata": {
+        "source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+        "scope": "official_public_model_page",
+        "region_or_account_specific": true
+      },
+      "capability_verified_at": "2026-09-07T00:00:00+00:00"
+    }
+  ]
+}

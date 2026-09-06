@@ -1,0 +1,46 @@
+{
+  "schema": "costdoctor.provider-benchmark-workloads.v1",
+  "provider": "openai",
+  "model": "gpt-5.6-luna",
+  "endpoint": "https://api.openai.com/v1/responses",
+  "store": false,
+  "max_output_tokens": 16,
+  "reasoning_effort": "none",
+  "fresh_rounds": 2,
+  "workloads": [
+    {
+      "id": "provider-word-count-v1",
+      "kind": "word_count",
+      "goal": "Return the exact word count as one integer",
+      "quality_threshold": 1.0,
+      "items": [
+        {"value": "cost signals need evidence", "expected": 4},
+        {"value": "quality protects useful output", "expected": 4}
+      ]
+    },
+    {
+      "id": "provider-integer-sum-v1",
+      "kind": "integer_sum",
+      "goal": "Return the exact sum as one integer",
+      "quality_threshold": 1.0,
+      "items": [
+        {"value": [13, -2, 8], "expected": 19},
+        {"value": [1, 1, 2, 3, 5, 8], "expected": 20}
+      ]
+    }
+  ],
+  "phase_context": {
+    "raw": {
+      "repeat": 24,
+      "text": "Authoritative instruction: solve only the supplied public arithmetic fixture. Preserve the exact task, do not call tools, do not explain, and return one base-10 integer with no surrounding text. The acceptance rule is exact numeric equality."
+    },
+    "engine": {
+      "repeat": 1,
+      "text": "Task capsule: solve the public fixture exactly. Output contract: one base-10 integer only. Tools are forbidden. Quality gate: exact numeric equality."
+    },
+    "engine_costdoctor": {
+      "repeat": 1,
+      "text": "Solve exactly. Reply with one integer only."
+    }
+  }
+}

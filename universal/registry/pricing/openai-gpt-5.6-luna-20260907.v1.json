@@ -1,0 +1,29 @@
+{
+  "schema": "costdoctor.pricing-registry.v1",
+  "rows": [
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "price_version": "official-2026-09-07",
+      "effective_from": "2026-09-06T00:00:00+00:00",
+      "effective_to": null,
+      "status": "confirmed",
+      "price_grade": "PROVIDER_PUBLISHED",
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "verified_at": "2026-09-07T00:00:00+00:00",
+      "unit_rates_usd": {
+        "input_tokens": 0.20,
+        "cached_input_tokens": 0.02,
+        "cache_write_tokens": 0.25,
+        "output_tokens": 1.20,
+        "reasoning_tokens": 1.20,
+        "tool_calls": 0
+      },
+      "custom_unit_rates_usd": {},
+      "batch_discount_fraction": 0,
+      "request_minimum_usd": 0,
+      "rounding_decimals": 9,
+      "notes": "Rates are USD per 1M text tokens. Reasoning tokens are separated by the adapter from output tokens and use the published output rate. Cache writes use 1.25 times the uncached input rate. The >272K long-context multiplier is intentionally unsupported by this bounded benchmark and triggers a preflight block."
+    }
+  ]
+}
