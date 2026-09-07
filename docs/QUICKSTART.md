@@ -1,5 +1,7 @@
 # Quick Start
 
+> 현재 공개 제품의 기본 경로는 **공개 GitHub URL 1회 입력 → Stage 1 정적 Precheck → Stage 2 Deep Diagnosis → 같은 Issue 결과 댓글**입니다. 아래의 역사적 App 운영 메모는 현재 공개 무료 진단 설치 절차가 아니며, 최신 사용법은 [Public Scan 안내](PUBLIC_SCAN.md)를 따릅니다.
+
 상태: `PUBLIC_PILOT_CANDIDATE / NOT_5_MINUTE_VALIDATED / TEMPORARY_ISOLATED_LIVE_E2E_PASS`
 
 현재 실제 설치 구조와 최초 검증 순서를 설명합니다. hosted endpoint와 내부 격리 GitHub E2E는 검증됐지만 외부 사용자 설치 허용은 최종 공개 Gate 전입니다. 외부 clean repository에서 시간을 측정해 성공하기 전에는 ‘5분 설치’라고 부르지 않습니다.

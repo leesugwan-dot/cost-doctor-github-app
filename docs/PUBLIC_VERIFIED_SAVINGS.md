@@ -7,7 +7,7 @@
 
 Provider와 모델은 Registry/Adapter에서 자동 탐지합니다. OpenAI, Anthropic, Gemini, Azure OpenAI, Bedrock, Upstage, OpenAI-compatible, Local/Ollama 및 unknown/custom을 구조적으로 확장할 수 있습니다. Upstage/Solar는 지원 adapter 중 하나일 뿐 기본 대상이 아닙니다.
 
-Provider Secret이 없어도 Stage 2는 `STRUCTURAL_DIAGNOSIS`, 가능한 경우 `DETERMINISTIC_MEASUREMENT` 또는 `ESTIMATED_COST_SAVINGS`까지 계속 생성합니다. 실제 usage·공식 가격·동일 workload 품질검사·독립검증이 모두 있을 때만 `VERIFIED_SAVINGS`로 승격합니다. 정적 수치, byte proxy, CostDoctor 자체 fixture는 사용자 저장소 절감으로 승격하지 않습니다.
+Provider Secret이 없어도 Stage 2는 **구조 분석**, 가능한 경우 **무료 정량 측정** 또는 **공식 가격 기반 추정**까지 계속 생성합니다. 실제 usage·공식 가격·동일 workload 품질검사·독립검증이 모두 있을 때만 **실제 절감 검증 완료**로 승격합니다. 정적 수치, byte proxy, 엔진 자체 fixture는 사용자 저장소 절감으로 승격하지 않습니다. 내부 판정 코드는 JSON Artifact에만 남습니다.
 
 실제 Provider 경로를 선택할 때만 대상 저장소 Secret 이름을 workflow input으로 지정하고, 정확한 실행 확인값과 승인된 지출한도를 사용합니다. Secret 원문·prompt·응답은 로그·artifact·Issue에 저장하지 않습니다.
 

@@ -32,11 +32,11 @@ jobs:
           lfs: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        uses: github/codeql-action/init@f0213c31c702f929cf06ddb900ac315d246a8997 # v4.33.0 (Node24)
         with:
           languages: ${{ matrix.language }}
 
       - name: Analyze
-        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        uses: github/codeql-action/analyze@f0213c31c702f929cf06ddb900ac315d246a8997 # v4.33.0 (Node24)
         with:
           category: "/language:${{ matrix.language }}"

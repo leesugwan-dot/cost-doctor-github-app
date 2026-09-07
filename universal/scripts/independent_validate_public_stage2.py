@@ -54,6 +54,12 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
     if report.get("verdict") == "ESTIMATED_SAVINGS" and not (pricing_equality and status == "DETECTED" and has_delta):
         failures.append("ESTIMATED_SAVINGS_WITHOUT_STRICT_DELTA")
     findings = list((report.get("stage2_diagnosis") or {}).get("findings") or [])
+    stage2_status = str((report.get("stage2_diagnosis") or {}).get("status") or "COMPLETE_STAGE2")
+    if stage2_status not in {"COMPLETE_STAGE2", "PARTIAL_STAGE1_ONLY", "FAILED_INPUT", "FAILED_INTERNAL"}:
+        failures.append("UNKNOWN_STAGE2_STATUS")
+    if stage2_status != "COMPLETE_STAGE2" and report.get("trust_level") in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS", "L4_PROVIDER_REPORTED_USAGE", "L5_VERIFIED_SAVINGS"}:
+        failures.append("PARTIAL_STAGE2_PROMOTED")
+    retry_evidence = dict((measurement.get("retry") or {}))
     for finding in findings:
         level = str(finding.get("verification_level") or "L1_STRUCTURAL_DIAGNOSIS")
         if level not in LEVEL_ORDER:
@@ -63,6 +69,12 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
             failures.append(f"FINDING_LEVEL_WITHOUT_MEASUREMENT:{finding.get('rule')}")
         if finding.get("rule") == "RETRY_LOOP" and level in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS"} and not (measurement.get("observed_retry_count") or measurement.get("measured_attempts")):
             failures.append("RETRY_PROMOTED_WITHOUT_OBSERVED_MEASUREMENT")
+        if finding.get("rule") == "RETRY_LOOP" and retry_evidence.get("negative_evidence") == "RETRY_DISABLED_OBSERVED" and finding.get("impact_level") == "HIGH":
+            failures.append("DISABLED_RETRY_MARKED_HIGH")
+        if finding.get("source_category") == "DOCS_EXAMPLE" and finding.get("signal_confidence") == "WEAK" and int(finding.get("priority") or 99) == 1:
+            failures.append("DOCS_WEAK_SIGNAL_TOP1")
+        if finding.get("rule") == "CACHE_SIGNAL" and (measurement.get("cache") or {}).get("ordinary_cache_occurrences") and not (measurement.get("cache") or {}).get("llm_relevant_occurrences") and level != "L1_STRUCTURAL_DIAGNOSIS":
+            failures.append("ORDINARY_CACHE_PROMOTED")
     safety = measurement.get("execution") or {}
     safety_zero = safety.get("provider_calls", 0) == 0 and safety.get("target_code_executed") is False and safety.get("secret_used") is False
     if not safety_zero:
@@ -77,7 +89,7 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
     checks = {
         "target_endpoint_provider_model_recomputed": bool((provider and (model or status in {"MULTIPLE_PROVIDERS", "OPENAI_COMPATIBLE_CUSTOM"})) or (not provider and status == "UNKNOWN_PROVIDER")),
         "pricing_provider_model_strict_equality": pricing_equality if pricing_required else pricing_safe,
-        "provider_conflicts_clear": not contract.get("conflicts") and status not in {"AMBIGUOUS_PROVIDER"},
+        "provider_conflicts_clear": (status == "MULTIPLE_PROVIDERS" and not pricing_required) or (not contract.get("conflicts") and status not in {"AMBIGUOUS_PROVIDER"}),
         # L2 structural/deterministic reports intentionally have no billed
         # Before/After delta.  Enforce the delta only when the report claims
         # an estimated or verified cost-saving level.
@@ -85,9 +97,10 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
         "per_finding_levels_safe": not any(item.startswith("FINDING_LEVEL") or item.startswith("RETRY_PROMOTED") for item in failures),
         "free_path_zero_execution": safety_zero,
         "multi_provider_not_forced": status != "MULTIPLE_PROVIDERS" or report.get("trust_level") != "L3_ESTIMATED_COST_SAVINGS",
+        "stage2_status_accurate": stage2_status == "COMPLETE_STAGE2" or report.get("trust_level") == "L1_STRUCTURAL_DIAGNOSIS",
     }
     return {
-        "schema": "costdoctor.public-stage2-independent-validation.r3.v1",
+        "schema": "costdoctor.public-stage2-independent-validation.r4.v1",
         "target_repository": binding.get("target_repository"),
         "target_commit": binding.get("target_commit"),
         "resolved_provider": provider,

@@ -88,7 +88,14 @@ def confirmation_present(body):
 
 
 def post_comment(repository, issue_number, token, text):
-    api("POST", f"{API}/repos/{repository}/issues/{issue_number}/comments", token, {"body": text[:60000]})
+    return api("POST", f"{API}/repos/{repository}/issues/{issue_number}/comments", token, {"body": text[:60000]})
+
+
+def update_comment(repository, comment_id, token, text):
+    """Replace the in-progress bot status so a scan leaves one result comment."""
+    if not comment_id:
+        return None
+    return api("PATCH", f"{API}/repos/{repository}/issues/comments/{int(comment_id)}", token, {"body": text[:60000]})
 
 
 def close_issue(repository, issue_number, token):
@@ -209,7 +216,7 @@ def load_report(result_dir):
     return json.loads(report_json.read_text(encoding="utf-8"))
 
 
-def run_universal_stage2(workspace, target_dir, static_result_dir, target_repo, target_ref, runner_temp, issue_number):
+def run_universal_stage2(workspace, target_dir, static_result_dir, target_repo, target_ref, runner_temp, issue_number, language="ko"):
     """Reuse the public-scan checkout for a secretless Universal Stage 2 pass.
 
     This path never calls a provider.  It binds the same target snapshot and
@@ -262,6 +269,7 @@ def run_universal_stage2(workspace, target_dir, static_result_dir, target_repo, 
             "--provider-preflight", str(preflight_path),
             "--target-binding", str(binding_path),
             "--target-precheck", str(binding_path),
+            "--language", language,
             "--output", str(report_dir),
         ],
         timeout=120,
@@ -296,7 +304,7 @@ def safe_tool_sha(value):
     return value if isinstance(value, str) and re.fullmatch(r"[a-f0-9]{40}", value) else "UNKNOWN"
 
 
-def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, generated_at=None):
+def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, generated_at=None, stage2_status="PENDING", stage2_trust_level="UNKNOWN"):
     coverage = report.get("coverage") or {}
     findings = [
         {"rule": f.get("rule"), "signal_count": int(f.get("signal_count") or 0)}
@@ -319,6 +327,8 @@ def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, gener
             "analyzed_bytes": int(coverage.get("analyzed_bytes") or 0),
             "findings": findings,
             "scanner_report_sha256": canonical_sha256(report),
+            "stage2_status": stage2_status,
+            "stage2_trust_level": stage2_trust_level,
         },
         "costdoctor": {"head": safe_tool_sha(tool_sha)},
         "run": {"issue_url": issue_url, "actions_run_url": run_url},
@@ -343,6 +353,8 @@ def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, gener
 
 def format_result(report, target_repo, meta, lang, issue_url, run_url, receipt=None):
     verdict = report.get("verdict", "UNKNOWN")
+    friendly_status = {"SCAN_COMPLETE": "Complete (static precheck)", "PARTIAL_SCAN": "Partial scan", "NO_SUPPORTED_SOURCE": "No supported source"}.get(verdict, "Not completed")
+    friendly_status_ko = {"SCAN_COMPLETE": "완료(정적 사전검사)", "PARTIAL_SCAN": "부분 검사", "NO_SUPPORTED_SOURCE": "분석 가능한 소스 없음"}.get(verdict, "완료되지 않음")
     coverage = report.get("coverage") or {}
     analyzed_files = int(coverage.get("analyzed_files") or 0)
     analyzed_bytes = int(coverage.get("analyzed_bytes") or 0)
@@ -365,7 +377,7 @@ def format_result(report, target_repo, meta, lang, issue_url, run_url, receipt=N
         return f"""## CostDoctor free public repository scan
 
 **Repository:** `{target_repo}`  
-**Status:** `{verdict}`  
+**Status:** **{friendly_status}**
 **Primary language reported by GitHub:** `{meta['language']}`  
 **Scanned:** {analyzed_files} files / {analyzed_bytes} bytes  
 **Snapshot:** exact default-branch HEAD verified against the GitHub API before analysis.{receipt_line_en}
@@ -393,7 +405,7 @@ Measure one high-signal path with the same goal/input/model/quality criteria bef
     return f"""## CostDoctor 무료 공개 저장소 진단 결과
 
 **대상:** `{target_repo}`  
-**상태:** `{verdict}`  
+**상태:** **{friendly_status_ko}**
 **GitHub 표시 주 언어:** `{meta['language']}`  
 **검사:** {analyzed_files}개 파일 / {analyzed_bytes} bytes  
 **스냅샷:** 분석 직전 GitHub API의 기본 브랜치 HEAD와 실제 checkout HEAD 일치를 확인했습니다.{receipt_line_ko}
@@ -425,7 +437,7 @@ def write_public_output(output_dir, markdown, receipt, stage2_sources=None):
     (output_dir / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     for source, name in (stage2_sources or []):
         source = Path(source)
-        if source.is_file() and source.name in {"verified_savings_report.json", "verified_savings_report.md", "target-binding.json", "provider-preflight.json"}:
+        if source.is_file() and source.name in {"verified_savings_report.json", "verified_savings_report.md", "target-binding.json", "provider-preflight.json", "independent-public-stage2.json"}:
             shutil.copyfile(source, output_dir / name)
 
 
@@ -505,6 +517,7 @@ def main():
 
     lang = parse_language(body)
     target_repo = None
+    status_comment_id = None
     try:
         if actor_type.lower() == "bot" or actor.endswith("[bot]"):
             raise ValueError("BOT_NOT_ALLOWED")
@@ -519,7 +532,8 @@ def main():
             if lang == "ko"
             else f"CostDoctor started a safe static scan of public repository `{target_repo}`. Target-project code will not be executed."
         )
-        post_comment(repository, issue_number, token, started)
+        status_comment = post_comment(repository, issue_number, token, started)
+        status_comment_id = (status_comment or {}).get("id") if isinstance(status_comment, dict) else None
 
         target_dir = runner_temp / f"costdoctor-target-{issue_number}"
         result_dir = runner_temp / f"costdoctor-result-{issue_number}"
@@ -540,10 +554,12 @@ def main():
         stage2_sources = []
         try:
             stage2_dir, binding_path, preflight_path, independent_path = run_universal_stage2(
-                workspace, target_dir, result_dir, target_repo, meta["default_branch"], runner_temp, issue_number
+                workspace, target_dir, result_dir, target_repo, meta["default_branch"], runner_temp, issue_number, lang
             )
             stage2_markdown_path = stage2_dir / "verified_savings_report.md"
             stage2_json_path = stage2_dir / "verified_savings_report.json"
+            stage2_payload = json.loads(stage2_json_path.read_text(encoding="utf-8"))
+            receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, stage2_status="COMPLETE_STAGE2", stage2_trust_level=stage2_payload.get("trust_level", "UNKNOWN"))
             stage2_markdown = stage2_markdown_path.read_text(encoding="utf-8")
             # Stage 2 is the single integrated user report.  It carries the
             # Stage 1 canonical signal table and the interpretation, so the
@@ -572,6 +588,7 @@ def main():
                 if lang != "en"
                 else "## CostDoctor Stage 2\n\n**Status:** `STAGE2_UNAVAILABLE`\n\nUniversal Stage 2 could not complete in this run. Actual cost and savings remain unverified."
             )
+            receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, stage2_status="PARTIAL_STAGE1_ONLY", stage2_trust_level="UNKNOWN")
             markdown = markdown + "\n\n---\n\n" + fallback
         write_public_output(public_output_dir, markdown, receipt, stage2_sources)
         append_runner_file("GITHUB_STEP_SUMMARY", markdown + "\n")
@@ -579,7 +596,10 @@ def main():
             "GITHUB_OUTPUT",
             f"public-output-dir={public_output_dir}\nreceipt-sha256={receipt['receipt_sha256']}\n"
         )
-        post_comment(repository, issue_number, token, markdown)
+        if status_comment_id:
+            update_comment(repository, status_comment_id, token, markdown)
+        else:
+            post_comment(repository, issue_number, token, markdown)
         close_and_lock(repository, issue_number, token)
         return 0
 
@@ -595,7 +615,11 @@ def main():
         code = str(e) if re.fullmatch(r"[A-Z0-9_]+", str(e)) else "INTERNAL_ERROR"
 
     try:
-        post_comment(repository, issue_number, token, friendly_error(code, lang, retry_url))
+        error_markdown = friendly_error(code, lang, retry_url)
+        if status_comment_id:
+            update_comment(repository, status_comment_id, token, error_markdown)
+        else:
+            post_comment(repository, issue_number, token, error_markdown)
         close_and_lock(repository, issue_number, token)
     except Exception:
         pass
