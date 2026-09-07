@@ -1,6 +1,6 @@
 # CostDoctor
 
-**Free, read-only AI/LLM API cost review for GitHub.** Find model-call, retry, cache, and token-limit signals before they become expensive.
+**Free AI/LLM API Cost Review for GitHub — read-only.** Find model-call, retry, cache, and token-limit signals before they become expensive.
 
 한국어: **GitHub 프로젝트의 AI/LLM API 비용 낭비 신호를 무료로 확인합니다.** 공개 저장소는 주소 하나로 검사하고, 비공개 저장소는 본인의 GitHub Actions 안에서만 Self-Scan합니다.
 
