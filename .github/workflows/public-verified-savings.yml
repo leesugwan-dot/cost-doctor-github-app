@@ -58,13 +58,17 @@ jobs:
             --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
 
       - name: Provider A/B/C actual (target repository Secret + exact confirmation only)
-        if: ${{ inputs.execute_confirmation == 'PROVIDER_PAID_EXECUTION_APPROVED' && secrets.OPENAI_API_KEY != '' }}
+        if: ${{ inputs.execute_confirmation == 'PROVIDER_PAID_EXECUTION_APPROVED' }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           COSTDOCTOR_PROVIDER_SECRET_SOURCE: TARGET_REPOSITORY_GITHUB_SECRET
         shell: bash
         run: |
           set -euo pipefail
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "TARGET_REPOSITORY_GITHUB_SECRET_REQUIRED"
+            exit 0
+          fi
           python3 universal/scripts/run_provider_actual_abc.py \
             --output "$RUNNER_TEMP/costdoctor-provider-actual" \
             --commit "${GITHUB_SHA}" \
