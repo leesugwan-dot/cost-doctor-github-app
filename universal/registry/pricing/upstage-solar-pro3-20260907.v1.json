@@ -1,0 +1,22 @@
+{
+  "schema": "costdoctor.pricing-registry.v1",
+  "rows": [
+    {
+      "provider": "upstage",
+      "model": "solar-pro3",
+      "price_version": "official-2026-09-07",
+      "effective_from": "2026-09-07T00:00:00+00:00",
+      "effective_to": null,
+      "status": "confirmed",
+      "price_grade": "PROVIDER_PUBLISHED",
+      "source": "https://www.upstage.ai/pricing/api",
+      "verified_at": "2026-09-07T00:00:00+00:00",
+      "unit_rates_usd": {"input_tokens": 0.15, "cached_input_tokens": 0.015, "cache_write_tokens": null, "output_tokens": 0.6, "reasoning_tokens": null, "tool_calls": 0},
+      "custom_unit_rates_usd": {},
+      "batch_discount_fraction": 0,
+      "request_minimum_usd": 0,
+      "rounding_decimals": 9,
+      "notes": "Official API page lists Solar Pro 3 at USD 0.15/1M input, USD 0.015/1M cached input and USD 0.60/1M output; prices exclude VAT. Unknown billing dimensions remain blocked."
+    }
+  ]
+}

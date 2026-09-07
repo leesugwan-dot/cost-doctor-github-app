@@ -1,0 +1,11 @@
+{
+  "schema": "costdoctor.provider-registry.v1",
+  "rows": [
+    {
+      "provider": "upstage",
+      "adapter": "upstage_openai_compatible_chat_v1",
+      "mode": "optional_target_repository_integration",
+      "capabilities": {"usage": true, "cache": "provider_defined", "reasoning": "provider_defined", "tools": true, "target_secret": "UPSTAGE_API_KEY", "base_url": "https://api.upstage.ai/v1"}
+    }
+  ]
+}

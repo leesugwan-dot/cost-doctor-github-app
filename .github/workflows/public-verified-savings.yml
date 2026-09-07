@@ -3,12 +3,20 @@ name: CostDoctor public verified savings
 on:
   workflow_dispatch:
     inputs:
+      target_repository:
+        description: "분석할 대상 저장소(owner/repo)"
+        required: true
+        default: "leesugwan-dot/active-project-reliability-demo"
+      target_ref:
+        description: "대상 저장소 기준 ref"
+        required: true
+        default: "main"
       approved_max_spend_usd:
         description: "최대 허용 지출(USD, 하드캡 0.05 이하)"
         required: true
         default: "0.04"
       execute_confirmation:
-        description: "실제 Provider 호출 시에만 PROVIDER_PAID_EXECUTION_APPROVED 입력"
+        description: "실제 Provider 호출 시 PROVIDER_PAID_EXECUTION_APPROVED 입력"
         required: false
         default: ""
 
@@ -24,79 +32,112 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout target repository only
+      - name: Checkout CostDoctor engine
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          path: costdoctor-engine
           persist-credentials: false
           fetch-depth: 1
           submodules: false
           lfs: false
 
-      - name: Static precheck (free, read-only)
-        id: static
-        uses: ./
+      - name: Checkout target repository (runner-local read-only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: "."
+          repository: ${{ inputs.target_repository }}
+          ref: ${{ inputs.target_ref }}
+          path: target-repository
+          token: ${{ github.token }}
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
 
-      - name: Deterministic A/B/C fixture and independent checks
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 universal/scripts/run_optimizer_acceptance.py \
-            --output "$RUNNER_TEMP/costdoctor-optimizer" \
-            --commit "${GITHUB_SHA}" \
-            --run-label public-verified-savings
+      - name: Static target precheck (free, read-only)
+        id: static
+        uses: ./costdoctor-engine
+        with:
+          repository: "./target-repository"
 
-      - name: Provider preflight (no network call)
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 universal/scripts/run_provider_actual_abc.py \
-            --output "$RUNNER_TEMP/costdoctor-provider-preflight" \
-            --commit "${GITHUB_SHA}" \
-            --preflight-only \
-            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
-
-      - name: Provider A/B/C actual (target repository Secret + exact confirmation only)
-        if: ${{ inputs.execute_confirmation == 'PROVIDER_PAID_EXECUTION_APPROVED' }}
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          COSTDOCTOR_PROVIDER_SECRET_SOURCE: TARGET_REPOSITORY_GITHUB_SECRET
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${OPENAI_API_KEY:-}" ]; then
-            echo "TARGET_REPOSITORY_GITHUB_SECRET_REQUIRED"
-            exit 0
-          fi
-          python3 universal/scripts/run_provider_actual_abc.py \
-            --output "$RUNNER_TEMP/costdoctor-provider-actual" \
-            --commit "${GITHUB_SHA}" \
-            --execute-confirmation "${{ inputs.execute_confirmation }}" \
-            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
-
-      - name: Build one-shot sanitized user report
+      - name: Bind target and derive sanitized workload evidence
         shell: bash
         env:
           STATIC_REPORT_DIR: ${{ steps.static.outputs.report-directory }}
         run: |
           set -euo pipefail
-          python3 universal/scripts/build_public_verified_savings_report.py \
+          python3 costdoctor-engine/universal/scripts/run_target_bound_precheck.py \
+            --repository target-repository \
+            --target-repository "${{ inputs.target_repository }}" \
+            --target-ref "${{ inputs.target_ref }}" \
+            --static-report "$STATIC_REPORT_DIR/report.json" \
+            --output "$RUNNER_TEMP/costdoctor-target-binding.json"
+
+      - name: Existing OpenAI benchmark (ENGINE_SELF_TEST / PROVIDER_REFERENCE only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 costdoctor-engine/universal/scripts/run_optimizer_acceptance.py \
+            --output "$RUNNER_TEMP/costdoctor-optimizer" \
+            --commit "${GITHUB_SHA}" \
+            --run-label engine-self-test-provider-reference
+
+      - name: Target provider preflight (no network call)
+        shell: bash
+        env:
+          COSTDOCTOR_PROVIDER_SECRET_SOURCE: TARGET_REPOSITORY_GITHUB_SECRET
+        run: |
+          set -euo pipefail
+          python3 costdoctor-engine/universal/scripts/run_target_provider_abc.py \
+            --target-repository target-repository \
+            --target-binding "$RUNNER_TEMP/costdoctor-target-binding.json" \
+            --output "$RUNNER_TEMP/costdoctor-target-provider-preflight" \
+            --preflight-only \
+            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
+
+      - name: Target Provider A/B/C actual (target Secret + exact confirmation only)
+        if: ${{ inputs.execute_confirmation == 'PROVIDER_PAID_EXECUTION_APPROVED' }}
+        continue-on-error: true
+        env:
+          UPSTAGE_API_KEY: ${{ secrets.UPSTAGE_API_KEY }}
+          COSTDOCTOR_PROVIDER_SECRET_SOURCE: TARGET_REPOSITORY_GITHUB_SECRET
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${UPSTAGE_API_KEY:-}" ]; then
+            echo "TARGET_REPOSITORY_GITHUB_SECRET_REQUIRED"
+            exit 0
+          fi
+          python3 costdoctor-engine/universal/scripts/run_target_provider_abc.py \
+            --target-repository target-repository \
+            --target-binding "$RUNNER_TEMP/costdoctor-target-binding.json" \
+            --output "$RUNNER_TEMP/costdoctor-target-provider-actual" \
+            --execute-confirmation "${{ inputs.execute_confirmation }}" \
+            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
+
+      - name: Build target-bound sanitized user report
+        shell: bash
+        env:
+          STATIC_REPORT_DIR: ${{ steps.static.outputs.report-directory }}
+        run: |
+          set -euo pipefail
+          python3 costdoctor-engine/universal/scripts/build_public_verified_savings_report.py \
             --static-report "$STATIC_REPORT_DIR/report.json" \
             --optimizer-dir "$RUNNER_TEMP/costdoctor-optimizer" \
-            --provider-preflight "$RUNNER_TEMP/costdoctor-provider-preflight/preflight.json" \
-            --provider-result "$RUNNER_TEMP/costdoctor-provider-actual/provider_actual_result.json" \
-            --active-project "leesugwan-dot/active-project-reliability-demo" \
+            --provider-preflight "$RUNNER_TEMP/costdoctor-target-provider-preflight/preflight.json" \
+            --provider-result "$RUNNER_TEMP/costdoctor-target-provider-actual/target_provider_abc_result.json" \
+            --target-binding "$RUNNER_TEMP/costdoctor-target-binding.json" \
+            --target-precheck "$RUNNER_TEMP/costdoctor-target-binding.json" \
             --output "$RUNNER_TEMP/costdoctor-verified-report"
 
-      - name: Keep sanitized one-shot evidence briefly
+      - name: Keep sanitized target-bound evidence briefly
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: costdoctor-public-verified-savings
+          name: costdoctor-target-bound-verified-savings
           path: |
             ${{ runner.temp }}/costdoctor-verified-report/verified_savings_report.json
             ${{ runner.temp }}/costdoctor-verified-report/verified_savings_report.md
-            ${{ runner.temp }}/costdoctor-provider-preflight/preflight.json
+            ${{ runner.temp }}/costdoctor-target-binding.json
+            ${{ runner.temp }}/costdoctor-target-provider-preflight/preflight.json
           if-no-files-found: error
           retention-days: 1

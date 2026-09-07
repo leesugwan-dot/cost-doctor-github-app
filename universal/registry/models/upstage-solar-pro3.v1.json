@@ -1,0 +1,18 @@
+{
+  "schema": "costdoctor.model-registry.v1",
+  "rows": [
+    {
+      "provider": "upstage",
+      "canonical_id": "solar-pro3",
+      "aliases": ["solar-pro-3"],
+      "family": "solar",
+      "version": "3",
+      "status": "active",
+      "context": {"input_tokens": null, "output_tokens": null},
+      "capabilities": {"reasoning": "provider_defined", "tools": true, "structured_output": true, "streaming": true, "batch": false, "cache": "provider_defined", "modalities": ["text"], "capability_score": null},
+      "limits_metadata": {"scope": "target-repository-selected", "region_or_account_specific": true, "source": "target-repository-provider-contract"},
+      "capability_verified_at": null,
+      "pricing_status": "unknown"
+    }
+  ]
+}
