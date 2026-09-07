@@ -6,7 +6,6 @@ on:
       target_repository:
         description: "분석할 대상 저장소(owner/repo)"
         required: true
-        default: "leesugwan-dot/active-project-reliability-demo"
       target_ref:
         description: "대상 저장소 기준 ref"
         required: true
@@ -17,6 +16,10 @@ on:
         default: "0.04"
       execute_confirmation:
         description: "실제 Provider 호출 시 PROVIDER_PAID_EXECUTION_APPROVED 입력"
+        required: false
+        default: ""
+      provider_secret_name:
+        description: "선택: 대상 저장소의 Provider Secret 이름(비우면 Stage 2 구조진단만 수행)"
         required: false
         default: ""
 
@@ -59,7 +62,7 @@ jobs:
         with:
           repository: "./target-repository"
 
-      - name: Bind target and derive sanitized workload evidence
+      - name: Bind target and derive sanitized provider/workload evidence
         shell: bash
         env:
           STATIC_REPORT_DIR: ${{ steps.static.outputs.report-directory }}
@@ -81,40 +84,39 @@ jobs:
             --commit "${GITHUB_SHA}" \
             --run-label engine-self-test-provider-reference
 
-      - name: Target provider preflight (no network call)
+      - name: Universal provider preflight (no network call)
         shell: bash
         env:
           COSTDOCTOR_PROVIDER_SECRET_SOURCE: TARGET_REPOSITORY_GITHUB_SECRET
         run: |
           set -euo pipefail
-          python3 costdoctor-engine/universal/scripts/run_target_provider_abc.py \
-            --target-repository target-repository \
+          python3 costdoctor-engine/universal/scripts/run_universal_provider_preflight.py \
             --target-binding "$RUNNER_TEMP/costdoctor-target-binding.json" \
-            --output "$RUNNER_TEMP/costdoctor-target-provider-preflight" \
-            --preflight-only \
+            --output "$RUNNER_TEMP/costdoctor-target-provider-preflight/preflight.json" \
             --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
 
-      - name: Target Provider A/B/C actual (target Secret + exact confirmation only)
+      - name: Optional Provider A/B/C actual (target Secret + exact confirmation only)
         if: ${{ inputs.execute_confirmation == 'PROVIDER_PAID_EXECUTION_APPROVED' }}
         continue-on-error: true
         env:
-          UPSTAGE_API_KEY: ${{ secrets.UPSTAGE_API_KEY }}
+          COSTDOCTOR_PROVIDER_SECRET: ${{ secrets[inputs.provider_secret_name] }}
           COSTDOCTOR_PROVIDER_SECRET_SOURCE: TARGET_REPOSITORY_GITHUB_SECRET
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${UPSTAGE_API_KEY:-}" ]; then
-            echo "TARGET_REPOSITORY_GITHUB_SECRET_REQUIRED"
+          if [ -z "${COSTDOCTOR_PROVIDER_SECRET:-}" ]; then
+            echo "PROVIDER_SECRET_OPTIONAL_NOT_PRESENT"
             exit 0
           fi
-          python3 costdoctor-engine/universal/scripts/run_target_provider_abc.py \
+          python3 costdoctor-engine/universal/scripts/run_provider_abc.py \
             --target-repository target-repository \
             --target-binding "$RUNNER_TEMP/costdoctor-target-binding.json" \
             --output "$RUNNER_TEMP/costdoctor-target-provider-actual" \
             --execute-confirmation "${{ inputs.execute_confirmation }}" \
-            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
+            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}" \
+            --secret-env COSTDOCTOR_PROVIDER_SECRET
 
-      - name: Build target-bound sanitized user report
+      - name: Build universal Stage 2 sanitized user report
         shell: bash
         env:
           STATIC_REPORT_DIR: ${{ steps.static.outputs.report-directory }}
@@ -124,16 +126,16 @@ jobs:
             --static-report "$STATIC_REPORT_DIR/report.json" \
             --optimizer-dir "$RUNNER_TEMP/costdoctor-optimizer" \
             --provider-preflight "$RUNNER_TEMP/costdoctor-target-provider-preflight/preflight.json" \
-            --provider-result "$RUNNER_TEMP/costdoctor-target-provider-actual/target_provider_abc_result.json" \
+            --provider-result "$RUNNER_TEMP/costdoctor-target-provider-actual/provider_abc_result.json" \
             --target-binding "$RUNNER_TEMP/costdoctor-target-binding.json" \
             --target-precheck "$RUNNER_TEMP/costdoctor-target-binding.json" \
             --output "$RUNNER_TEMP/costdoctor-verified-report"
 
-      - name: Keep sanitized target-bound evidence briefly
+      - name: Keep sanitized universal Stage 2 evidence briefly
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: costdoctor-target-bound-verified-savings
+          name: costdoctor-universal-stage2
           path: |
             ${{ runner.temp }}/costdoctor-verified-report/verified_savings_report.json
             ${{ runner.temp }}/costdoctor-verified-report/verified_savings_report.md

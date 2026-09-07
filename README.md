@@ -10,7 +10,7 @@
 
 [**내 공개 GitHub 무료 검사하기**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [**Private repository Self-Scan**](docs/PRIVATE_REPO_SELF_SCAN.md) · [**GitHub Marketplace에서 Action 설치**](https://github.com/marketplace/actions/costdoctor-repository-review)
 
-실제 사용량·품질까지 한 번에 확인하려면 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요. Provider Secret이 없으면 비용과 절감률은 `UNKNOWN`으로 안전하게 차단됩니다.
+실제 사용량·품질까지 한 번에 확인하려면 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요. Provider Secret이 없어도 구체적인 Stage 2 구조진단·예상효과를 제공하며, 실제 비용·절감률은 usage Evidence가 있을 때만 VERIFIED로 승격됩니다.
 
 처음이라면 [Pages-ready 소개 화면](docs/index.html)에서 20초 요약을 확인하세요.
 
