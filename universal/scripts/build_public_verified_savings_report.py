@@ -15,6 +15,13 @@ from typing import Any
 
 
 PHASES = ("raw", "engine", "engine_costdoctor")
+LEVEL_ORDER = {
+    "L1_STRUCTURAL_DIAGNOSIS": 1,
+    "L2_DETERMINISTIC_MEASUREMENT": 2,
+    "L3_ESTIMATED_COST_SAVINGS": 3,
+    "L4_PROVIDER_REPORTED_USAGE": 4,
+    "L5_VERIFIED_SAVINGS": 5,
+}
 RULE_TEXT = {
     "MODEL_CALL": ("모델/API 호출 문제", "중복·직렬 호출을 같은 입력 기준으로 묶고 실제 호출 수를 측정하세요.", "MEDIUM"),
     "RETRY_LOOP": ("재시도 증폭 문제", "일시 오류만 제한적으로 재시도하고 멱등 키와 재작업 비용을 기록하세요.", "HIGH"),
@@ -75,8 +82,13 @@ def provider_gate(preflight: dict[str, Any], provider_result: dict[str, Any] | N
     provider = contract.get("provider")
     model = contract.get("model")
     confidence = contract.get("confidence", "UNKNOWN")
+    identity_status = str(contract.get("provider_identity_status") or "DETECTED")
+    client_family = contract.get("client_family") or "unknown"
+    identity_conflicts = list(contract.get("conflicts") or [])
+    if provider in {"AMBIGUOUS_PROVIDER", "MULTIPLE_PROVIDERS", "OPENAI_COMPATIBLE_CUSTOM"}:
+        identity_conflicts.append(f"UNPRICED_PROVIDER_{provider}")
     if not binding or not binding.get("target_fingerprint"):
-        return {"status": "BLOCKED", "provider_authenticated": False, "verdict": "TARGET_BINDING_REQUIRED", "measurement_grade": "UNKNOWN", "verified_savings_available": False, "raw_secret_stored": False, "confidence": confidence}
+        return {"status": "BLOCKED", "provider_authenticated": False, "verdict": "TARGET_BINDING_REQUIRED", "measurement_grade": "UNKNOWN", "verified_savings_available": False, "raw_secret_stored": False, "confidence": confidence, "client_family": client_family, "identity_conflicts": identity_conflicts}
     if provider_result is not None:
         same_binding = (
             provider_result.get("target_binding_fingerprint") == binding.get("target_fingerprint")
@@ -86,15 +98,15 @@ def provider_gate(preflight: dict[str, Any], provider_result: dict[str, Any] | N
             and provider_result.get("provider") == provider
             and (model is None or provider_result.get("model") == model)
         )
-        authenticated = provider_result.get("provider_authenticated_verdict") == "PASS" and provider_result.get("pricing_status") in {"PROVIDER_PUBLISHED", "CUSTOMER_CONTRACT", "EXPLICIT_ZERO"} and same_binding
-        return {"status": "PASS" if authenticated else "BLOCKED", "provider_authenticated": authenticated, "verdict": "PASS" if authenticated else ("TARGET_BINDING_MISMATCH" if not same_binding else "UNKNOWN_PRICE_OR_PROVIDER_VERIFICATION"), "measurement_grade": provider_result.get("measurement_grade", "UNKNOWN"), "verified_savings_available": authenticated, "raw_secret_stored": False, "target_binding_match": same_binding, "provider": provider, "model": model, "confidence": confidence}
+        authenticated = provider_result.get("provider_authenticated_verdict") == "PASS" and provider_result.get("pricing_status") in {"PROVIDER_PUBLISHED", "CUSTOMER_CONTRACT", "EXPLICIT_ZERO"} and same_binding and not identity_conflicts
+        return {"status": "PASS" if authenticated else "BLOCKED", "provider_authenticated": authenticated, "verdict": "PASS" if authenticated else ("TARGET_BINDING_MISMATCH" if not same_binding else "UNKNOWN_PRICE_OR_PROVIDER_VERIFICATION"), "measurement_grade": provider_result.get("measurement_grade", "UNKNOWN"), "verified_savings_available": authenticated, "raw_secret_stored": False, "target_binding_match": same_binding, "provider": provider, "model": model, "confidence": confidence, "client_family": client_family, "identity_conflicts": identity_conflicts}
     if not provider:
-        return {"status": "NOT_APPLICABLE", "provider_authenticated": False, "verdict": "NO_PROVIDER_DETECTED", "measurement_grade": "STRUCTURAL_ONLY", "verified_savings_available": False, "raw_secret_stored": False}
+        return {"status": "NOT_APPLICABLE", "provider_authenticated": False, "verdict": "NO_PROVIDER_DETECTED", "measurement_grade": "STRUCTURAL_ONLY", "verified_savings_available": False, "raw_secret_stored": False, "client_family": client_family, "identity_conflicts": identity_conflicts}
     if not preflight.get("credential_present", False):
-        return {"status": "OPTIONAL_NOT_CONFIGURED", "provider_authenticated": False, "verdict": "SECRET_OPTIONAL_FOR_STAGE2", "measurement_grade": "STRUCTURAL_ONLY", "verified_savings_available": False, "raw_secret_stored": False, "provider": provider, "model": model, "credential_name": contract.get("credential_name"), "confidence": confidence}
+        return {"status": "OPTIONAL_NOT_CONFIGURED", "provider_authenticated": False, "verdict": "SECRET_OPTIONAL_FOR_STAGE2", "measurement_grade": "STRUCTURAL_ONLY", "verified_savings_available": False, "raw_secret_stored": False, "provider": provider, "model": model, "credential_name": contract.get("credential_name"), "confidence": confidence, "client_family": client_family, "identity_conflicts": identity_conflicts}
     if not preflight.get("execution_confirmation_valid", False):
-        return {"status": "BLOCKED_UNTIL_CONFIRMED", "provider_authenticated": False, "verdict": "PROVIDER_PAID_EXECUTION_APPROVED_REQUIRED", "measurement_grade": "STRUCTURAL_ONLY", "verified_savings_available": False, "raw_secret_stored": False, "provider": provider, "model": model, "confidence": confidence}
-    return {"status": "BLOCKED", "provider_authenticated": False, "verdict": "PROVIDER_RESULT_MISSING", "measurement_grade": "UNKNOWN", "verified_savings_available": False, "raw_secret_stored": False, "provider": provider, "model": model, "confidence": confidence}
+        return {"status": "BLOCKED_UNTIL_CONFIRMED", "provider_authenticated": False, "verdict": "PROVIDER_PAID_EXECUTION_APPROVED_REQUIRED", "measurement_grade": "STRUCTURAL_ONLY", "verified_savings_available": False, "raw_secret_stored": False, "provider": provider, "model": model, "confidence": confidence, "client_family": client_family, "identity_conflicts": identity_conflicts}
+    return {"status": "BLOCKED", "provider_authenticated": False, "verdict": "PROVIDER_RESULT_MISSING", "measurement_grade": "UNKNOWN", "verified_savings_available": False, "raw_secret_stored": False, "provider": provider, "model": model, "confidence": confidence, "client_family": client_family, "identity_conflicts": identity_conflicts}
 
 
 def _canonical_counts(static_report: dict[str, Any], binding: dict[str, Any] | None) -> dict[str, int]:
@@ -119,30 +131,60 @@ def _measurement_for_rule(rule: str, measurement: dict[str, Any]) -> dict[str, A
         return {"metric": "cacheable_repetition_chars", "value": int(cache["cacheable_candidate_chars"]), "unit": "characters", "claim": "source repetition candidate; not cache hit rate"}
     if rule == "TOKEN_LIMIT" and budget.get("declared_values"):
         return {"metric": "declared_context_or_output_limits", "value": list(budget["declared_values"]), "unit": "configured token limit", "claim": "configuration evidence; not provider usage"}
-    if rule in {"MODEL_CALL", "CACHE_SIGNAL", "TOKEN_LIMIT"} and context.get("repeated_candidate_chars", 0):
-        return {"metric": "repeated_context_chars", "value": int(context["repeated_candidate_chars"]), "unit": "characters", "ratio": context.get("repeated_candidate_ratio", 0), "token_estimate": context.get("repeated_token_estimate"), "claim": "deterministic source structure; not billed tokens"}
+    if rule in {"MODEL_CALL", "CACHE_SIGNAL", "TOKEN_LIMIT"} and (context.get("repeated_candidate_chars", 0) or context.get("repeated_token_estimate", 0)):
+        return {"metric": "repeated_context_chars" if context.get("repeated_candidate_chars", 0) else "repeated_context_tokens", "value": int(context.get("repeated_candidate_chars") or context.get("repeated_token_estimate") or 0), "unit": "characters" if context.get("repeated_candidate_chars", 0) else "estimated tokens", "ratio": context.get("repeated_candidate_ratio", 0), "token_estimate": context.get("repeated_token_estimate"), "claim": "deterministic source structure; not billed tokens"}
     return None
+
+
+def _provider_pricing_matches(preflight: dict[str, Any], contract: dict[str, Any]) -> bool:
+    evidence = preflight.get("pricing_evidence") or {}
+    binding = preflight.get("pricing_binding") or {}
+    return bool(
+        preflight.get("pricing_status") in {"PROVIDER_PUBLISHED", "CUSTOMER_CONTRACT", "EXPLICIT_ZERO"}
+        and evidence.get("provider") == contract.get("provider")
+        and evidence.get("model") == contract.get("model")
+        and binding.get("strict_equality") is not False
+        and str(contract.get("provider_identity_status") or "DETECTED") == "DETECTED"
+        and not contract.get("conflicts")
+    )
 
 
 def _estimated_cost_effect(measurement: dict[str, Any], preflight: dict[str, Any], grade: str) -> dict[str, Any] | None:
     if grade != "L3_ESTIMATED_COST_SAVINGS":
         return None
-    tokens = int(((measurement.get("context") or {}).get("repeated_token_estimate")) or 0)
+    context = measurement.get("context") or {}
+    tokens = int(context.get("avoidable_delta_tokens") or context.get("repeated_token_estimate") or 0)
     rates = ((preflight.get("pricing_evidence") or {}).get("unit_rates_usd") or {})
     if tokens <= 0 or rates.get("input_tokens") is None:
         return None
     per_call = (d(rates.get("input_tokens")) * d(tokens) / d(1_000_000)).quantize(Decimal("0.000000001"))
-    return {"metric": "repeated_input_cost_per_call", "value_usd": money(per_call), "input_tokens": tokens, "unit": "USD per hypothetical call", "claim": "official pricing plus deterministic source estimate; not billed usage and no monthly extrapolation"}
+    return {"metric": "avoidable_input_cost_per_call", "value_usd": money(per_call), "input_tokens": tokens, "unit": "USD per hypothetical call", "claim": "official pricing plus deterministic before/optimized delta; not billed usage and no monthly extrapolation"}
 
 
 def _pricing_bound_measurement(measurement: dict[str, Any]) -> bool:
-    """Only a deterministic token quantity may be converted to a price."""
+    """Require a reproducible before/optimized quantity delta for L3."""
     context = measurement.get("context") or {}
-    # Retry/cache/budget counters alone are not a priced token amount.
-    return int(context.get("repeated_token_estimate") or 0) > 0
+    before = int(context.get("before_token_estimate") or context.get("candidate_token_estimate") or 0)
+    optimized = int(context.get("optimized_token_estimate") or 0)
+    delta = int(context.get("avoidable_delta_tokens") or 0)
+    return before > 0 and optimized >= 0 and delta > 0 and before - optimized == delta
 
 
-def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, provider: dict[str, Any], evidence_level: str = "L1_STRUCTURAL_DIAGNOSIS") -> list[dict[str, Any]]:
+def _finding_level(rule: str, measurement: dict[str, Any] | None, *, actual_available: bool, global_grade: str) -> str:
+    """Assign evidence per finding; a global report grade is never copied blindly."""
+    if actual_available and global_grade == "L5_VERIFIED_SAVINGS":
+        return "L5_VERIFIED_SAVINGS"
+    if not measurement:
+        return "L1_STRUCTURAL_DIAGNOSIS"
+    # A configured retry ceiling is a structural clue, not observed usage.
+    if rule == "RETRY_LOOP" and not (measurement.get("observed_retry_count") or measurement.get("measured_attempts")):
+        return "L1_STRUCTURAL_DIAGNOSIS"
+    if global_grade == "L3_ESTIMATED_COST_SAVINGS" and _pricing_bound_measurement({"context": measurement}):
+        return "L3_ESTIMATED_COST_SAVINGS"
+    return "L2_DETERMINISTIC_MEASUREMENT"
+
+
+def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, provider: dict[str, Any], evidence_level: str = "L1_STRUCTURAL_DIAGNOSIS", *, actual_available: bool = False) -> list[dict[str, Any]]:
     aggregate = _canonical_counts(static_report, binding)
     measurement = (binding or {}).get("deterministic_measurement") or {}
     contract = (binding or {}).get("provider_contract") or {}
@@ -162,6 +204,7 @@ def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, pr
         if count <= 0:
             continue
         measurement_value = _measurement_for_rule(key, measurement)
+        finding_level = _finding_level(key, measurement_value, actual_available=actual_available, global_grade=evidence_level)
         result.append({
             "priority": len(result) + 1,
             "rule": key,
@@ -169,16 +212,16 @@ def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, pr
             "canonical_signal_count": count,
             "canonical_source": "TARGET_STATIC_PRECHECK",
             "structural_evidence": {"source": "TARGET_REPOSITORY_CHECKOUT", "signal_count": count, "not_billing": True},
-            "provider_detection_evidence": {"provider": contract.get("provider"), "model": contract.get("model"), "confidence": contract.get("confidence", "UNKNOWN"), "raw_hits_internal_only": True},
+            "provider_detection_evidence": {"provider": contract.get("provider"), "model": contract.get("model"), "endpoint": contract.get("endpoint") or contract.get("base_url"), "client_family": contract.get("client_family"), "confidence": contract.get("confidence", "UNKNOWN"), "identity_source": contract.get("identity_source"), "conflicts": contract.get("conflicts", []), "raw_hits_internal_only": True},
             "deterministic_measurement": measurement_value,
             "evidence": {"signal_count": count, "source": "TARGET_STATIC_PRECHECK", "not_billing": True},
             "why_cost_grows": "반복 호출·재시도·불필요한 문맥이 실제 사용량을 늘릴 수 있습니다.",
             "improvement": recommendation,
             "impact_level": impact,
             "expected_impact": impact,
-            "estimated_effect": measurement_value if evidence_level in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS", "L4_PROVIDER_REPORTED_USAGE", "L5_VERIFIED_SAVINGS"} else None,
+            "estimated_effect": measurement_value if finding_level in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS", "L4_PROVIDER_REPORTED_USAGE", "L5_VERIFIED_SAVINGS"} else None,
             "estimated_savings_range": None,
-            "verification_level": evidence_level,
+            "verification_level": finding_level,
             "provider_detected": provider.get("provider") or "UNKNOWN",
         })
     if not result:
@@ -200,7 +243,7 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
     deterministic = bool(deterministic_evidence.get("available") or workload.get("ready"))
     contract = _contract(binding)
     confidence = str(contract.get("confidence") or preflight.get("provider_confidence") or "UNKNOWN").upper()
-    priced = bool(preflight.get("pricing_status") in {"PROVIDER_PUBLISHED", "CUSTOMER_CONTRACT", "EXPLICIT_ZERO"} and preflight.get("pricing_evidence"))
+    priced = _provider_pricing_matches(preflight, contract)
     if actual_available:
         grade, verdict = "L5_VERIFIED_SAVINGS", "VERIFIED_SAVINGS"
     elif priced and deterministic and _pricing_bound_measurement(deterministic_evidence) and confidence in {"STRONG", "MEDIUM"} and contract.get("model"):
@@ -208,7 +251,11 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
     else:
         grade, verdict = ("L2_DETERMINISTIC_MEASUREMENT", "DETERMINISTIC_MEASUREMENT") if deterministic else ("L1_STRUCTURAL_DIAGNOSIS", "STRUCTURAL_DIAGNOSIS")
     reported = provider_result.get("stages") if actual_available and provider_result else {phase: None for phase in PHASES}
-    diagnosis = _diagnosis(static_report, binding, provider, grade)
+    diagnosis = _diagnosis(static_report, binding, provider, grade, actual_available=actual_available)
+    finding_levels = {item.get("rule"): item.get("verification_level") for item in diagnosis}
+    distinct_levels = sorted({value for value in finding_levels.values() if value}, key=lambda value: LEVEL_ORDER.get(value, 0))
+    level_labels = {"L1_STRUCTURAL_DIAGNOSIS": "구조 분석", "L2_DETERMINISTIC_MEASUREMENT": "결정론적 정량측정", "L3_ESTIMATED_COST_SAVINGS": "공식 가격 기반 추정", "L5_VERIFIED_SAVINGS": "실제 사용량 검증"}
+    verification_label = f"혼합 ({'~'.join(level_labels.get(value, value) for value in distinct_levels)})" if len(distinct_levels) > 1 else level_labels.get(grade, grade)
     estimated_cost_effect = _estimated_cost_effect(deterministic_evidence, preflight, grade)
     summary = {
         "what_wasted": diagnosis,
@@ -220,7 +267,7 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
         "quality": "NON_REGRESSION_VERIFIED" if actual_available else "코드 실행 없이 안전 분석 완료",
         "verification_cost": "UNKNOWN" if not actual_available else provider_result.get("validation_overhead_usd", "UNKNOWN"),
         "net_saving": "UNKNOWN" if not actual_available else provider_result.get("net_saving_usd", "UNKNOWN"),
-        "verification_label": {"L1_STRUCTURAL_DIAGNOSIS": "구조 분석", "L2_DETERMINISTIC_MEASUREMENT": "정량 측정", "L3_ESTIMATED_COST_SAVINGS": "공식 가격 기반 추정", "L5_VERIFIED_SAVINGS": "실제 사용량 검증"}.get(grade, grade),
+        "verification_label": verification_label,
         "deterministic_measurement": deterministic_evidence if deterministic else None,
         "estimated_cost_effect": estimated_cost_effect,
     }
@@ -231,9 +278,9 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
         "trust_level": grade,
         "target_binding": {"repository": (binding or {}).get("target_repository"), "ref": (binding or {}).get("target_ref"), "commit": (binding or {}).get("target_commit"), "fingerprint": (binding or {}).get("target_fingerprint"), "provider_contract": _contract(binding), "workload": {key: value for key, value in workload.items() if key not in {"prompt", "items"}}, "bound": bool(binding and binding.get("target_fingerprint"))},
         "static_precheck": {"status": "PASS" if binding else "UNKNOWN", "canonical_signal_counts": aggregate, "signal_counts": aggregate, "canonical_source": "TARGET_STATIC_PRECHECK", "source": "TARGET_REPOSITORY_CHECKOUT" if binding else "UNBOUND", "not_billing_or_savings": True},
-        "stage2_diagnosis": {"status": "PASS", "evidence_level": grade, "provider_detected": detected, "provider_confidence": confidence, "provider_candidates": ((binding or {}).get("provider_detection") or {}).get("provider_candidates", []), "findings": diagnosis, "secretless_continuation": True, "raw_detector_hits_user_visible": False},
+        "stage2_diagnosis": {"status": "PASS", "evidence_level": grade, "finding_evidence_levels": finding_levels, "mixed_evidence": len(distinct_levels) > 1, "evidence_levels_present": distinct_levels, "provider_detected": detected, "provider_confidence": confidence, "provider_candidates": ((binding or {}).get("provider_detection") or {}).get("provider_candidates", []), "provider_groups": ((binding or {}).get("provider_detection") or {}).get("provider_groups", []), "findings": diagnosis, "secretless_continuation": True, "raw_detector_hits_user_visible": False},
         "fixture_reference": fixture,
-        "provider": provider,
+        "provider": {**provider, "pricing_bound": priced, "pricing_binding": preflight.get("pricing_binding") or {}},
         "reported_stages": reported,
         "reported_stage_reason": "PROVIDER_AUTHENTICATED_TARGET_RECEIPT" if actual_available else "Provider usage is optional; structural/estimated Stage 2 remains available and fixture claims are excluded.",
         "quality": {"provider_before": provider_result.get("stages", {}).get("raw", {}).get("quality") if provider_result else None, "provider_after": provider_result.get("stages", {}).get("engine_costdoctor", {}).get("quality") if provider_result else None, "fixture_quality_non_regression": all(row.get("quality", {}).get("failed_phases", []) == [] for row in acceptance.get("workloads", [])), "target_workload_ready": deterministic, "verdict": "PASS" if actual_available else "NOT_MEASURED_PROVIDER"},
@@ -251,13 +298,22 @@ def render_markdown(report: dict[str, Any]) -> str:
     static_counts = report.get("static_precheck", {}).get("canonical_signal_counts", {})
     provider_verified = bool((report.get("provider") or {}).get("provider_authenticated"))
     api_line = "- 실제 API 호출: **provider 영수증으로 확인됨**" if provider_verified else "- 실제 API 호출: **없음 (무료 공개 진단)**"
+    provider_payload = report.get("provider") or {}
+    contract = target.get("provider_contract") or {}
+    provider_name = provider_payload.get("provider") or contract.get("provider")
+    if provider_name in {"AMBIGUOUS_PROVIDER", "MULTIPLE_PROVIDERS", "OPENAI_COMPATIBLE_CUSTOM"} or not provider_name:
+        provider_line = "- 감지 Provider: **정확히 확정하지 못함** (가격 추정 생략)"
+    else:
+        client = contract.get("client_family") or provider_payload.get("client_family") or "unknown"
+        model = contract.get("model") or "UNKNOWN_MODEL"
+        provider_line = f"- 감지 Provider: **{provider_name}** · 사용 Client: **{client}** · 모델: **{model}**"
     risk_order = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
     risk = max((item.get("impact_level", "LOW") for item in summary["what_wasted"]), key=lambda value: risk_order.get(value, 0))
     lines = [
         "# CostDoctor 결과", "", "## 한눈에 보기", "",
         f"- 비용 위험: **{risk}**", f"- 검증 수준: **{level_label}**",
         f"- 대상: `{target.get('repository') or 'UNKNOWN'}` / `{target.get('commit') or 'UNKNOWN'}`",
-        api_line, "",
+        provider_line, api_line, "",
         "### Stage 1 canonical 신호 (Stage 2도 이 숫자를 그대로 사용)", "",
         "| 문제 유형 | 후보 수 |", "| --- | ---: |",
     ]

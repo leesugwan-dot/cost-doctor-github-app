@@ -266,7 +266,19 @@ def run_universal_stage2(workspace, target_dir, static_result_dir, target_repo, 
         ],
         timeout=120,
     )
-    return report_dir, binding_path, preflight_path
+    independent_path = stage2_root / "independent-public-stage2.json"
+    run(
+        [
+            sys.executable,
+            str(scripts / "independent_validate_public_stage2.py"),
+            "--binding", str(binding_path),
+            "--preflight", str(preflight_path),
+            "--report", str(report_dir / "verified_savings_report.json"),
+            "--output", str(independent_path),
+        ],
+        timeout=60,
+    )
+    return report_dir, binding_path, preflight_path, independent_path
 
 
 def top_findings(report, limit=4):
@@ -527,7 +539,7 @@ def main():
         markdown = format_result(report, target_repo, meta, lang, issue_url, run_url, receipt=receipt)
         stage2_sources = []
         try:
-            stage2_dir, binding_path, preflight_path = run_universal_stage2(
+            stage2_dir, binding_path, preflight_path, independent_path = run_universal_stage2(
                 workspace, target_dir, result_dir, target_repo, meta["default_branch"], runner_temp, issue_number
             )
             stage2_markdown_path = stage2_dir / "verified_savings_report.md"
@@ -549,6 +561,7 @@ def main():
                 (stage2_json_path, "stage2_verified_savings_report.json"),
                 (binding_path, "stage2_target_binding.json"),
                 (preflight_path, "stage2_provider_preflight.json"),
+                (independent_path, "stage2_independent_validation.json"),
             ]
         except Exception:
             # Preserve the established static result if the optional Stage 2

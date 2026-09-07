@@ -68,16 +68,28 @@ class PublicStage2ResultQualityR2Tests(unittest.TestCase):
         self.assertNotIn("5~25%", markdown)
         self.assertIn("청구 비용 아님", markdown)
 
-    def test_official_price_plus_bound_token_measurement_promotes_to_l3(self):
+    def test_official_price_without_before_after_delta_stays_l2(self):
         preflight = {"credential_present": False, "pricing_status": "PROVIDER_PUBLISHED", "pricing_evidence": {"provider": "openai", "model": "gpt-5.6-luna", "price_grade": "PROVIDER_PUBLISHED", "source": "official", "unit_rates_usd": {"input_tokens": 1.0}}}
         with tempfile.TemporaryDirectory() as tmp:
             report = REPORT.build_report(self.static(), self.acceptance(), Path(tmp), preflight, None, target_binding=self.binding(measurement=self.measurement()))
+            markdown = REPORT.render_markdown(report)
+        self.assertEqual(report["trust_level"], "L2_DETERMINISTIC_MEASUREMENT")
+        self.assertEqual(report["verdict"], "DETERMINISTIC_MEASUREMENT")
+        self.assertIsNone(report["user_summary"]["estimated_cost_effect"])
+        self.assertNotIn("가상 호출 1회", markdown)
+
+    def test_official_price_with_reproducible_before_after_delta_promotes_to_l3(self):
+        preflight = {"credential_present": False, "pricing_status": "PROVIDER_PUBLISHED", "pricing_evidence": {"provider": "openai", "model": "gpt-5.6-luna", "price_grade": "PROVIDER_PUBLISHED", "source": "official", "unit_rates_usd": {"input_tokens": 1.0}}, "pricing_binding": {"strict_equality": True}}
+        measurement = self.measurement()
+        measurement["context"].update({"before_token_estimate": 200, "optimized_token_estimate": 100, "avoidable_delta_tokens": 100})
+        with tempfile.TemporaryDirectory() as tmp:
+            report = REPORT.build_report(self.static(), self.acceptance(), Path(tmp), preflight, None, target_binding=self.binding(measurement=measurement))
             markdown = REPORT.render_markdown(report)
         self.assertEqual(report["trust_level"], "L3_ESTIMATED_COST_SAVINGS")
         self.assertEqual(report["verdict"], "ESTIMATED_SAVINGS")
         self.assertIsNotNone(report["user_summary"]["estimated_cost_effect"])
         self.assertIn("가상 호출 1회", markdown)
-        self.assertNotIn("월간 환산:", markdown)  # no monthly extrapolated number
+        self.assertNotIn("월간 환산:", markdown)
 
     def test_price_without_token_binding_stays_l2(self):
         preflight = {"credential_present": False, "pricing_status": "PROVIDER_PUBLISHED", "pricing_evidence": {"provider": "openai", "model": "gpt-5.6-luna", "price_grade": "PROVIDER_PUBLISHED", "unit_rates_usd": {"input_tokens": 1.0}}}

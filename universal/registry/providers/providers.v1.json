@@ -11,26 +11,35 @@
     {
       "provider": "openai",
       "adapter": "openai_v1",
+      "client_family": "openai-direct",
+      "provider_aliases": ["openai"],
+      "pricing_provider_key": "openai",
       "mode": "offline_import",
       "capabilities": {"usage": true, "cache": true, "reasoning": true, "tools": true},
       "secret_names": ["OPENAI_API_KEY"], "default_base_url": "https://api.openai.com/v1",
-      "detection": {"terms": ["openai", "responses.create", "chat.completions"], "endpoint_terms": ["api.openai.com"], "model_patterns": {"gpt-5.6-luna": ["gpt-5.6-luna"]}}
+      "detection": {"terms": ["openai", "responses.create", "chat.completions"], "sdk_terms": ["from openai", "openai", "OpenAI(", "openai.responses", "openai.chat"], "endpoint_terms": ["api.openai.com"], "model_patterns": {"gpt-5.6-luna": ["gpt-5.6-luna"]}}
     },
     {
       "provider": "anthropic",
       "adapter": "anthropic_v1",
+      "client_family": "anthropic-direct",
+      "provider_aliases": ["anthropic", "claude"],
+      "pricing_provider_key": "anthropic",
       "mode": "offline_import",
       "capabilities": {"usage": true, "cache": true, "reasoning": "provider_defined", "tools": true},
       "secret_names": ["ANTHROPIC_API_KEY"], "default_base_url": "https://api.anthropic.com",
-      "detection": {"terms": ["anthropic", "messages.create", "claude"], "endpoint_terms": ["api.anthropic.com"], "model_patterns": {}}
+      "detection": {"terms": ["anthropic", "messages.create", "claude"], "sdk_terms": ["anthropic", "Anthropic(", "messages.create"], "endpoint_terms": ["api.anthropic.com"], "model_patterns": {}}
     },
     {
       "provider": "gemini",
       "adapter": "gemini_v1",
+      "client_family": "gemini-direct",
+      "provider_aliases": ["gemini", "google"],
+      "pricing_provider_key": "gemini",
       "mode": "offline_import",
       "capabilities": {"usage": true, "cache": true, "reasoning": true, "tools": true},
       "secret_names": ["GEMINI_API_KEY", "GOOGLE_API_KEY"], "default_base_url": "https://generativelanguage.googleapis.com",
-      "detection": {"terms": ["gemini", "generateContent", "google.generativeai"], "endpoint_terms": ["generativelanguage.googleapis.com"], "model_patterns": {}}
+      "detection": {"terms": ["gemini", "generateContent", "google.generativeai"], "sdk_terms": ["google.generativeai", "GenerativeModel", "generateContent"], "endpoint_terms": ["generativelanguage.googleapis.com"], "model_patterns": {}}
     },
     {
       "provider": "agnes",
@@ -42,31 +51,43 @@
     {
       "provider": "ollama",
       "adapter": "ollama_v1",
+      "client_family": "ollama-local",
+      "provider_aliases": ["ollama"],
+      "pricing_provider_key": "ollama",
       "mode": "offline_import",
       "capabilities": {"usage": true, "local": true, "cost": "zero_or_user_defined"},
       "secret_names": [], "default_base_url": "http://localhost:11434/api",
-      "detection": {"terms": ["ollama", "localhost:11434", "ollama.chat", "ollama.generate"], "endpoint_terms": ["localhost:11434"], "always_for_local": true, "model_patterns": {}}
+      "detection": {"terms": ["ollama", "localhost:11434", "ollama.chat", "ollama.generate"], "sdk_terms": ["import ollama", "ollama.chat", "ollama.generate"], "endpoint_terms": ["localhost:11434"], "always_for_local": true, "model_patterns": {}}
     },
     {
       "provider": "azure_openai",
       "adapter": "openai_v1",
+      "client_family": "azure-openai",
+      "provider_aliases": ["azure", "azure_openai"],
+      "pricing_provider_key": "azure_openai",
       "mode": "optional_target_repository_integration",
       "capabilities": {"usage": true, "cache": true, "reasoning": "provider_defined", "tools": true},
-      "secret_names": ["AZURE_OPENAI_API_KEY"], "detection": {"terms": ["azure.openai", "azure_openai", "AZURE_OPENAI_ENDPOINT"], "endpoint_terms": ["openai.azure.com"], "model_patterns": {}}
+      "secret_names": ["AZURE_OPENAI_API_KEY"], "detection": {"terms": ["azure.openai", "azure_openai", "AZURE_OPENAI_ENDPOINT"], "sdk_terms": ["AzureOpenAI", "azure_openai"], "endpoint_terms": ["openai.azure.com"], "model_patterns": {}}
     },
     {
       "provider": "bedrock",
       "adapter": "generic_v1",
+      "client_family": "aws-bedrock",
+      "provider_aliases": ["bedrock", "aws"],
+      "pricing_provider_key": "bedrock",
       "mode": "optional_target_repository_integration",
       "capabilities": {"usage": "provider_defined", "cache": "provider_defined", "tools": true},
-      "secret_names": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"], "detection": {"terms": ["boto3", "bedrock-runtime", "amazonbedrock"], "endpoint_terms": ["bedrock-runtime"], "model_patterns": {}}
+      "secret_names": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"], "detection": {"terms": ["boto3", "bedrock-runtime", "amazonbedrock"], "sdk_terms": ["boto3", "bedrock-runtime", "invoke_model"], "endpoint_terms": ["bedrock-runtime"], "model_patterns": {}}
     },
     {
       "provider": "openai_compatible",
       "adapter": "openai_v1",
+      "client_family": "openai-compatible",
+      "provider_aliases": ["openai-compatible", "compatible"],
+      "pricing_provider_key": "openai_compatible",
       "mode": "optional_target_repository_integration",
       "capabilities": {"usage": "provider_defined", "cache": "provider_defined", "tools": true},
-      "secret_names": ["LLM_API_KEY", "OPENAI_API_KEY"], "detection": {"terms": ["chat.completions", "openai_compatible", "base_url"], "endpoint_terms": [], "model_patterns": {}}
+      "secret_names": ["LLM_API_KEY", "OPENAI_API_KEY"], "detection": {"terms": ["chat.completions", "openai_compatible", "base_url"], "sdk_terms": ["OpenAI(", "ChatOpenAI", "@langchain/openai"], "endpoint_terms": [], "model_patterns": {}}
     },
     {
       "provider": "unknown_custom",

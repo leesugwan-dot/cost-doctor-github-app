@@ -4,11 +4,15 @@
     {
       "provider": "upstage",
       "adapter": "upstage_openai_compatible_chat_v1",
+      "client_family": "openai-compatible",
+      "provider_aliases": ["upstage", "solar"],
+      "compatible_client_family": "openai-compatible",
+      "pricing_provider_key": "upstage",
       "mode": "optional_target_repository_integration",
       "capabilities": {"usage": true, "cache": "provider_defined", "reasoning": "provider_defined", "tools": true},
       "secret_names": ["UPSTAGE_API_KEY"],
       "default_base_url": "https://api.upstage.ai/v1",
-      "detection": {"terms": ["upstage", "solar", "solar-pro3"], "endpoint_terms": ["api.upstage.ai/v1"], "model_patterns": {"solar-pro3": ["solar-pro3", "solar-pro-3"]}}
+      "detection": {"terms": ["upstage", "solar", "solar-pro3"], "sdk_terms": ["@langchain/openai", "ChatOpenAI", "OpenAI("], "endpoint_terms": ["api.upstage.ai/v1"], "model_patterns": {"solar-pro3": ["solar-pro3", "solar-pro-3"]}}
     }
   ]
 }
