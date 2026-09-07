@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CostDoctor is a free, read-only GitHub review for AI and LLM API cost-risk signals.">
+  <title>CostDoctor — Free AI/LLM API cost review</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="index.html">CostDoctor</a>
+      <div class="nav-links">
+        <a href="PUBLIC_SCAN.md">Public scan</a>
+        <a href="PRIVATE_REPO_SELF_SCAN.md">Private Self-Scan</a>
+        <a href="https://github.com/marketplace/actions/costdoctor-repository-review">Marketplace</a>
+      </div>
+    </nav>
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">FREE · READ-ONLY · NO API KEY</p>
+        <h1>Find AI/LLM API cost signals before they become expensive.</h1>
+        <p class="lede">A bounded, static review for GitHub projects. CostDoctor looks for model-call, retry, cache, and token-limit signals without executing your code.</p>
+        <p class="lede-ko">한국어: GitHub 프로젝트의 AI/LLM API 비용 낭비 신호를 무료로 확인합니다.</p>
+        <div class="actions" aria-label="Get started">
+          <a class="button primary" href="https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml">Scan a public repository</a>
+          <a class="button secondary" href="PRIVATE_REPO_SELF_SCAN.md">Private repository Self-Scan</a>
+          <a class="text-link" href="https://github.com/marketplace/actions/costdoctor-repository-review">Install the GitHub Action →</a>
+        </div>
+      </div>
+      <aside class="trust-card" aria-label="Safety boundaries">
+        <h2>Your repository stays yours.</h2>
+        <ul>
+          <li>Read-only review</li>
+          <li>No automatic code changes, push, or merge</li>
+          <li>No customer source upload to an operator PC</li>
+          <li>No API key for the free scan</li>
+          <li>External telemetry off</li>
+        </ul>
+      </aside>
+    </div>
+  </header>
+
+  <main>
+    <section class="section" aria-labelledby="choose-path">
+      <p class="eyebrow">CHOOSE YOUR START</p>
+      <h2 id="choose-path">One free check, or a private run in your own Actions.</h2>
+      <div class="path-grid">
+        <article class="path-card">
+          <p class="card-kicker">PUBLIC REPOSITORY</p>
+          <h3>Paste one public GitHub URL</h3>
+          <p>Open the scan form, paste the URL, choose a language, and submit. The result is posted as a sanitized Issue comment.</p>
+          <a class="arrow-link" href="https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml">Start the free scan →</a>
+        </article>
+        <article class="path-card">
+          <p class="card-kicker">PRIVATE REPOSITORY</p>
+          <h3>Keep the run inside your GitHub Actions</h3>
+          <p>Use the read-only Self-Scan workflow with <code>contents: read</code>. Your private source stays in your repository's runner environment.</p>
+          <a class="arrow-link" href="PRIVATE_REPO_SELF_SCAN.md">Read the Self-Scan guide →</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="checks">
+      <p class="eyebrow">WHAT YOU GET</p>
+      <h2 id="checks">Clear signals to review next.</h2>
+      <div class="signal-grid">
+        <div class="signal"><strong>MODEL CALLS</strong><span>API call candidates</span></div>
+        <div class="signal"><strong>RETRY RISK</strong><span>Patterns that may multiply calls</span></div>
+        <div class="signal"><strong>CACHE SIGNALS</strong><span>Places worth checking for reuse</span></div>
+        <div class="signal"><strong>TOKEN LIMITS</strong><span>Input/output budget controls</span></div>
+      </div>
+      <p class="note">These are static review signals, not billing measurements. Actual calls, spend, savings, and quality remain <code>UNKNOWN</code> without matching Before/After Provider Evidence.</p>
+    </section>
+
+    <section class="section example" aria-labelledby="example">
+      <div>
+        <p class="eyebrow">SANITIZED EXAMPLE</p>
+        <h2 id="example">See the shape of a result before you install anything.</h2>
+        <p>This is a public fixture summary, not a promise about your project and not a savings claim. The full example is available in the repository.</p>
+        <a class="arrow-link" href="../costdoctor-entry/examples/report.md">Open the result example →</a>
+      </div>
+      <div class="result-card" role="img" aria-label="Sanitized result example showing four static signal counts">
+        <div><span>MODEL CALLS</span><b>101</b><small>candidates</small></div>
+        <div><span>RETRY RISK</span><b>0</b><small>candidates</small></div>
+        <div><span>CACHE SIGNALS</span><b>3</b><small>candidates</small></div>
+        <div><span>TOKEN LIMITS</span><b>3</b><small>candidates</small></div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="repeat">
+      <p class="eyebrow">WANT THIS ON EVERY CHANGE?</p>
+      <h2 id="repeat">Install the Marketplace Action after the free check.</h2>
+      <p>Use the same read-only contract in your own workflow. The Action writes sanitized runner-local reports and does not modify your repository.</p>
+      <pre><code>permissions:
+  contents: read
+
+steps:
+  - uses: leesugwan-dot/cost-doctor-github-app@v1.0.1</code></pre>
+      <a class="button primary" href="https://github.com/marketplace/actions/costdoctor-repository-review">Open CostDoctor on GitHub Marketplace</a>
+    </section>
+
+    <section class="section footer-links" aria-labelledby="learn">
+      <p class="eyebrow">LEARN MORE</p>
+      <h2 id="learn">Read the boundary, then choose your next step.</h2>
+      <div class="link-grid">
+        <a href="PUBLIC_SCAN.md">Public scan guide</a>
+        <a href="PRIVATE_REPO_SELF_SCAN.md">Private Self-Scan guide</a>
+        <a href="../PRIVACY.md">Privacy</a>
+        <a href="../SECURITY.md">Security</a>
+        <a href="../SUPPORT.md">Support</a>
+        <a href="../universal/README.md">Measured benchmark boundary</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>CostDoctor is Apache-2.0 open source. Static scan signals are not verified savings.</p>
+    <p><a href="https://github.com/leesugwan-dot/cost-doctor-github-app">View the repository</a> · <a href="../LICENSE">License</a></p>
+  </footer>
+</body>
+</html>

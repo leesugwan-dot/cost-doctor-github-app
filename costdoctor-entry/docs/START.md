@@ -1,5 +1,7 @@
 # 처음 시작
 
+처음 보는 GitHub 사용자라면 [무료 공개 진단](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)부터 시작하세요. 비공개 저장소는 [Private Self-Scan 안내](../../docs/PRIVATE_REPO_SELF_SCAN.md), 반복 사용은 [Marketplace Action](https://github.com/marketplace/actions/costdoctor-repository-review)을 이용합니다. 아래 로컬·workflow 사진 경로는 선택형 상세 가이드입니다.
+
 ## 로컬: 실행 파일 2개로 시작
 
 1. 공개 저장소의 `costdoctor-entry` 폴더를 같은 이름으로 준비합니다. 모델이나 별도 App 설치는 필요 없습니다.

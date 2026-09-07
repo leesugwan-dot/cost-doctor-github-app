@@ -1,5 +1,7 @@
 # CostDoctor 무료 공개 저장소 진단
 
+[처음 방문했다면 Pages-ready 소개 화면](index.html) · [저장소 README](../README.md) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
+
 [FAQ](PUBLIC_SCAN_FAQ.md) · [상태 코드](PUBLIC_SCAN_STATUS_CODES.md) · [실제 예시](PUBLIC_SCAN_EXAMPLE.md) · [보안 경계](../SECURITY.md) · [코드/개인정보 처리 초안](../PRIVACY_DRAFT.md) · [기계 판독 계약](../public_scan_contract.json)
 
 ## 가장 간단한 사용법
