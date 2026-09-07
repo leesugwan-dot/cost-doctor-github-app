@@ -1,0 +1,98 @@
+name: CostDoctor public verified savings
+
+on:
+  workflow_dispatch:
+    inputs:
+      approved_max_spend_usd:
+        description: "최대 허용 지출(USD, 하드캡 0.05 이하)"
+        required: true
+        default: "0.04"
+      execute_confirmation:
+        description: "실제 Provider 호출 시에만 PROVIDER_PAID_EXECUTION_APPROVED 입력"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: costdoctor-public-verified-savings-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verified-savings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout target repository only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Static precheck (free, read-only)
+        id: static
+        uses: ./
+        with:
+          repository: "."
+
+      - name: Deterministic A/B/C fixture and independent checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 universal/scripts/run_optimizer_acceptance.py \
+            --output "$RUNNER_TEMP/costdoctor-optimizer" \
+            --commit "${GITHUB_SHA}" \
+            --run-label public-verified-savings
+
+      - name: Provider preflight (no network call)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 universal/scripts/run_provider_actual_abc.py \
+            --output "$RUNNER_TEMP/costdoctor-provider-preflight" \
+            --commit "${GITHUB_SHA}" \
+            --preflight-only \
+            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
+
+      - name: Provider A/B/C actual (target repository Secret + exact confirmation only)
+        if: ${{ inputs.execute_confirmation == 'PROVIDER_PAID_EXECUTION_APPROVED' && secrets.OPENAI_API_KEY != '' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          COSTDOCTOR_PROVIDER_SECRET_SOURCE: TARGET_REPOSITORY_GITHUB_SECRET
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 universal/scripts/run_provider_actual_abc.py \
+            --output "$RUNNER_TEMP/costdoctor-provider-actual" \
+            --commit "${GITHUB_SHA}" \
+            --execute-confirmation "${{ inputs.execute_confirmation }}" \
+            --approved-max-spend-usd "${{ inputs.approved_max_spend_usd }}"
+
+      - name: Build one-shot sanitized user report
+        shell: bash
+        env:
+          STATIC_REPORT_DIR: ${{ steps.static.outputs.report-directory }}
+        run: |
+          set -euo pipefail
+          python3 universal/scripts/build_public_verified_savings_report.py \
+            --static-report "$STATIC_REPORT_DIR/report.json" \
+            --optimizer-dir "$RUNNER_TEMP/costdoctor-optimizer" \
+            --provider-preflight "$RUNNER_TEMP/costdoctor-provider-preflight/preflight.json" \
+            --provider-result "$RUNNER_TEMP/costdoctor-provider-actual/provider_actual_result.json" \
+            --active-project "leesugwan-dot/active-project-reliability-demo" \
+            --output "$RUNNER_TEMP/costdoctor-verified-report"
+
+      - name: Keep sanitized one-shot evidence briefly
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: costdoctor-public-verified-savings
+          path: |
+            ${{ runner.temp }}/costdoctor-verified-report/verified_savings_report.json
+            ${{ runner.temp }}/costdoctor-verified-report/verified_savings_report.md
+            ${{ runner.temp }}/costdoctor-provider-preflight/preflight.json
+          if-no-files-found: error
+          retention-days: 1

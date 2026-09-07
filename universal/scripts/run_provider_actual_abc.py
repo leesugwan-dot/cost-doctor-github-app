@@ -435,12 +435,15 @@ def main() -> int:
     pricing = PricingRegistry(ROOT / "universal" / "registry" / "pricing")
     forecast = conservative_forecast(spec, pricing)
     key_present = bool(os.environ.get("OPENAI_API_KEY"))
+    secret_source = os.environ.get("COSTDOCTOR_PROVIDER_SECRET_SOURCE", "")
+    target_repo_secret = key_present and secret_source == "TARGET_REPOSITORY_GITHUB_SECRET"
     preflight = {
         "schema": "costdoctor.provider-actual-execution-preflight.v1",
         "provider": spec["provider"],
         "model": spec["model"],
         "commit": args.commit,
-        "credential_present": key_present,
+        "credential_present": target_repo_secret,
+        "credential_source": "TARGET_REPOSITORY_GITHUB_SECRET" if target_repo_secret else "UNVERIFIED_OR_ABSENT",
         "credential_value_stored_or_printed": False,
         "forecast": forecast,
         "execution_confirmation_valid": args.execute_confirmation == EXECUTION_CONFIRMATION,
@@ -465,8 +468,8 @@ def main() -> int:
         raise SystemExit("APPROVED_SPEND_CAP_INVALID_OR_ABOVE_HARD_LIMIT")
     if forecast_upper > approved:
         raise SystemExit("FORECAST_EXCEEDS_APPROVED_SPEND_CAP")
-    if not key_present:
-        raise SystemExit("OPENAI_API_KEY_REQUIRED")
+    if not target_repo_secret:
+        raise SystemExit("TARGET_REPOSITORY_GITHUB_SECRET_REQUIRED")
     result = execute_all(spec, args.commit, os.environ["OPENAI_API_KEY"])
     actual_cost = Decimal("0")
     for round_row in result["rounds"]:
