@@ -131,6 +131,17 @@ jobs:
             --target-precheck "$RUNNER_TEMP/costdoctor-target-binding.json" \
             --output "$RUNNER_TEMP/costdoctor-verified-report"
 
+      - name: Show universal Stage 2 report in job summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "$RUNNER_TEMP/costdoctor-verified-report/verified_savings_report.md" ]; then
+            cat "$RUNNER_TEMP/costdoctor-verified-report/verified_savings_report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Stage 2 report unavailable; inspect the sanitized artifact." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Keep sanitized universal Stage 2 evidence briefly
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
