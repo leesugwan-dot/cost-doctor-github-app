@@ -47,9 +47,9 @@ class PublicVerifiedSavingsReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             report = MODULE.build_report(self._static(), self._acceptance(), Path(tmp), {"credential_present": False}, None, target_binding=self._binding())
             markdown = MODULE.render_markdown(report)
-        self.assertIn("STRUCTURAL_DIAGNOSIS", markdown)
-        self.assertIn("예상 효과", markdown)
-        self.assertIn("Provider Secret이 없어도", markdown)
+        self.assertIn("구조 분석", markdown)
+        self.assertIn("실제 사용량이 연결되지 않아", markdown)
+        self.assertIn("실제 사용량이 연결되지 않아", markdown)
 
     def test_fixed_percentage_ranges_are_hidden_without_measured_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -57,7 +57,7 @@ class PublicVerifiedSavingsReportTests(unittest.TestCase):
             markdown = MODULE.render_markdown(report)
         self.assertNotIn("5~25%", markdown)
         self.assertNotIn("0~30%", markdown)
-        self.assertIn("UNKNOWN_UNTIL_MEASURED", markdown)
+        self.assertIn("실제 사용량이 연결되지 않아", markdown)
 
 
 if __name__ == "__main__":

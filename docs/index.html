@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="CostDoctor is a free, read-only GitHub review for AI and LLM API cost-risk signals.">
+  <meta name="description" content="CostDoctor is a free, read-only GitHub review that diagnoses AI and LLM cost-waste structure and measures safe deterministic opportunities.">
   <title>CostDoctor — Free AI/LLM API cost review</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -20,8 +20,8 @@
     <div class="hero-grid">
       <div>
         <p class="eyebrow">FREE · READ-ONLY · NO API KEY</p>
-        <h1>Find AI/LLM API cost signals before they become expensive.</h1>
-        <p class="lede">A bounded, static review for GitHub projects. CostDoctor looks for model-call, retry, cache, and token-limit signals without executing your code.</p>
+        <h1>Find and measure AI/LLM cost-waste structure.</h1>
+        <p class="lede">Paste one public GitHub URL. CostDoctor runs a Static Precheck and an evidence-bound Stage 2 diagnosis without executing your code or calling a model.</p>
         <p class="lede-ko">한국어: GitHub 프로젝트의 AI/LLM API 비용 낭비 신호를 무료로 확인합니다.</p>
         <div class="actions" aria-label="Get started">
           <a class="button primary" href="https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml">Scan a public repository</a>
@@ -61,8 +61,8 @@
         </article>
         <article class="path-card">
           <p class="card-kicker">VERIFIED SAVINGS</p>
-          <h3>Measure before and after in one run</h3>
-          <p>Use the workflow to combine static precheck, deep cost diagnosis, guarded Provider preflight, quality checks, and a sanitized report. Without a repository Secret, Stage 2 still returns structural findings and estimated impact; only verified usage can become <code>VERIFIED_SAVINGS</code>.</p>
+          <h3>Go deeper only when you have usage evidence</h3>
+          <p>Free scans always return structure and safe deterministic measurements when available. A separate advanced workflow can bind Provider usage and quality evidence; only then is a saving claim verified.</p>
           <a class="arrow-link" href="https://github.com/leesugwan-dot/cost-doctor-github-app/blob/main/docs/PUBLIC_VERIFIED_SAVINGS.md">Read the Verified Savings guide →</a>
         </article>
       </div>
@@ -70,28 +70,28 @@
 
     <section class="section" aria-labelledby="checks">
       <p class="eyebrow">WHAT YOU GET</p>
-      <h2 id="checks">Clear signals to review next.</h2>
+      <h2 id="checks">Clear, evidence-bound findings.</h2>
       <div class="signal-grid">
         <div class="signal"><strong>MODEL CALLS</strong><span>API call candidates</span></div>
         <div class="signal"><strong>RETRY RISK</strong><span>Patterns that may multiply calls</span></div>
         <div class="signal"><strong>CACHE SIGNALS</strong><span>Places worth checking for reuse</span></div>
         <div class="signal"><strong>TOKEN LIMITS</strong><span>Input/output budget controls</span></div>
       </div>
-      <p class="note">These begin as static review signals, not billing measurements. Stage 2 explains the waste candidate and improvement path; actual calls, spend, savings, and quality become verified only with matching Before/After Provider Evidence.</p>
+      <p class="note">The same Issue combines Stage 1 counts with Stage 2 explanations, confidence, source category, deterministic context deltas, and coverage. Actual calls, spend, savings, and quality become verified only with matching Before/After Provider Evidence.</p>
     </section>
 
     <section class="section example" aria-labelledby="example">
       <div>
         <p class="eyebrow">SANITIZED EXAMPLE</p>
         <h2 id="example">See the shape of a result before you install anything.</h2>
-        <p>This is a public fixture summary, not a promise about your project and not a savings claim. The full example is available in the repository.</p>
+        <p>This is a sanitized Stage 2 shape, not a promise about your project and not a savings claim. The full example is available in the repository.</p>
         <a class="arrow-link" href="https://github.com/leesugwan-dot/cost-doctor-github-app/blob/main/costdoctor-entry/examples/report.md">Open the result example →</a>
       </div>
-      <div class="result-card" role="img" aria-label="Sanitized result example showing four static signal counts">
-        <div><span>MODEL CALLS</span><b>101</b><small>candidates</small></div>
-        <div><span>RETRY RISK</span><b>0</b><small>candidates</small></div>
-        <div><span>CACHE SIGNALS</span><b>3</b><small>candidates</small></div>
-        <div><span>TOKEN LIMITS</span><b>3</b><small>candidates</small></div>
+      <div class="result-card" role="img" aria-label="Sanitized Stage 2 example showing priority, measured context delta, and safety">
+        <div><span>REVIEW PRIORITY</span><b>MED</b><small>evidence-bound</small></div>
+        <div><span>CONTEXT DELTA</span><b>43%</b><small>structural candidate</small></div>
+        <div><span>API CALLS</span><b>0</b><small>free scan</small></div>
+        <div><span>QUALITY</span><b>—</b><small>not run</small></div>
       </div>
     </section>
 

@@ -1,6 +1,6 @@
 # CostDoctor
 
-**Free AI/LLM API Cost Review for GitHub — read-only.** Find model-call, retry, cache, and token-limit signals before they become expensive.
+**Free AI/LLM API Cost Review for GitHub — read-only.** Enter one public URL and receive a Static Precheck plus a deeper, evidence-bound diagnosis in the same Issue.
 
 한국어: **GitHub 프로젝트의 AI/LLM API 비용 낭비 신호를 무료로 확인합니다.** 공개 저장소는 주소 하나로 검사하고, 비공개 저장소는 본인의 GitHub Actions 안에서만 Self-Scan합니다.
 
@@ -10,13 +10,13 @@
 
 [**내 공개 GitHub 무료 검사하기**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [**Private repository Self-Scan**](docs/PRIVATE_REPO_SELF_SCAN.md) · [**GitHub Marketplace에서 Action 설치**](https://github.com/marketplace/actions/costdoctor-repository-review)
 
-실제 사용량·품질까지 한 번에 확인하려면 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요. Provider Secret이 없어도 구체적인 Stage 2 구조진단·예상효과를 제공하며, 실제 비용·절감률은 usage Evidence가 있을 때만 VERIFIED로 승격됩니다.
+공개 진단은 Provider Secret 없이 구조 진단과 가능한 무료 정량 측정을 자동으로 이어갑니다. 실제 비용·절감률은 같은 workload의 Provider usage Evidence가 있을 때만 검증됩니다. 고급 측정 경로는 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요.
 
 처음이라면 [Pages-ready 소개 화면](docs/index.html)에서 20초 요약을 확인하세요.
 
 ### 10초 요약
 
-- **무엇인가요?** 코드를 실행하지 않고 AI/LLM API 비용과 관련된 정적 검토 신호를 찾습니다.
+- **무엇인가요?** 코드를 실행하지 않고 AI/LLM 비용 낭비 구조를 찾고 가능한 범위에서 정량화합니다.
 - **무료인가요?** 공개 저장소 진단은 무료이며 API Key가 필요 없습니다.
 - **코드가 바뀌나요?** 아니요. 자동 수정, commit, push, branch, PR, merge를 하지 않습니다.
 - **코드를 가져가나요?** 고객 소스를 운영자 PC로 보내지 않습니다. 공개 진단은 GitHub-hosted runner의 임시 공간에서만 읽습니다.
@@ -47,10 +47,10 @@
 
 | 신호 | 쉽게 말하면 |
 | --- | --- |
-| `MODEL_CALL` | 모델/API 호출 후보가 있는 곳 |
-| `RETRY_LOOP` | 실패 시 호출이 늘어날 수 있는 재시도 패턴 |
-| `CACHE_SIGNAL` | 캐시를 확인해 볼 만한 신호 |
-| `TOKEN_LIMIT` | 입력·출력 길이 제한을 확인할 신호 |
+| 모델 호출 후보 | 실제 호출과 SDK 설정을 구분해 확인 |
+| 재시도 후보 | 활성 재시도와 비활성·문서 신호를 구분 |
+| AI 요청 문맥 재사용 후보 | Provider 문맥 캐시와 일반 캐시를 분리 |
+| 토큰·문맥 제한 후보 | 현재 구조와 줄일 후보를 정량 비교 |
 
 ### Sanitized 결과 예시
 
@@ -63,7 +63,7 @@
 | CACHE SIGNALS | 3 후보 |
 | TOKEN LIMITS | 3 후보 |
 
-**실제 비용·토큰 절감: UNKNOWN.** 정적 신호 개수는 실제 호출 수나 낭비액이 아닙니다. 원문 코드·비밀키·로컬 경로는 결과에 넣지 않습니다.
+**실제 비용·토큰 절감은 usage Evidence가 없으면 측정하지 않습니다.** 정적 신호는 후보이며, 보고서에는 근거 범위·신뢰도·점검 우선순위·안전 경계가 함께 표시됩니다. 내부 식별자와 원문 코드·비밀키·로컬 경로는 기본 결과에 넣지 않습니다.
 
 ## 반복 사용: GitHub Action
 
