@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -82,7 +83,8 @@ class ProductHardeningR4Tests(unittest.TestCase):
         self.assertIn("DISABLED_RETRY_MARKED_HIGH", result["failures"])
 
     def test_node_scanner_distinguishes_categories_and_cache(self):
-        node = r"C:\Program Files\nodejs\node.exe"
+        node = shutil.which("node") or shutil.which("nodejs")
+        self.assertIsNotNone(node, "Node.js is required for the scanner contract test")
         scanner = ROOT / "costdoctor-entry/entry/scan.mjs"
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
