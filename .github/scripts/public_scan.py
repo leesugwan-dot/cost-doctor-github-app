@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -208,6 +209,66 @@ def load_report(result_dir):
     return json.loads(report_json.read_text(encoding="utf-8"))
 
 
+def run_universal_stage2(workspace, target_dir, static_result_dir, target_repo, target_ref, runner_temp, issue_number):
+    """Reuse the public-scan checkout for a secretless Universal Stage 2 pass.
+
+    This path never calls a provider.  It binds the same target snapshot and
+    static report, then asks the existing Stage 2 scripts for a sanitized
+    structural diagnosis.  A tiny empty acceptance envelope keeps the public
+    free path independent from the private/provider fixture benchmark.
+    """
+    stage2_root = runner_temp / f"costdoctor-stage2-{issue_number}"
+    if stage2_root.exists():
+        raise RuntimeError("TEMP_PATH_EXISTS")
+    stage2_root.mkdir(mode=0o700, parents=False)
+    binding_path = stage2_root / "target-binding.json"
+    preflight_path = stage2_root / "provider-preflight.json"
+    optimizer_dir = stage2_root / "optimizer-reference"
+    optimizer_dir.mkdir(mode=0o700)
+    (optimizer_dir / "acceptance.json").write_text(
+        json.dumps({"schema": "costdoctor.public-scan.stage2-reference.v1", "local_verdict": "PASS", "workloads": []}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    report_dir = stage2_root / "report"
+    scripts = workspace / "universal" / "scripts"
+    run(
+        [
+            sys.executable,
+            str(scripts / "run_target_bound_precheck.py"),
+            "--repository", str(target_dir),
+            "--target-repository", target_repo,
+            "--target-ref", target_ref,
+            "--static-report", str(static_result_dir / "report.json"),
+            "--output", str(binding_path),
+        ],
+        timeout=120,
+    )
+    run(
+        [
+            sys.executable,
+            str(scripts / "run_universal_provider_preflight.py"),
+            "--target-binding", str(binding_path),
+            "--output", str(preflight_path),
+            "--approved-max-spend-usd", "0",
+        ],
+        timeout=60,
+    )
+    run(
+        [
+            sys.executable,
+            str(scripts / "build_public_verified_savings_report.py"),
+            "--static-report", str(static_result_dir / "report.json"),
+            "--optimizer-dir", str(optimizer_dir),
+            "--provider-preflight", str(preflight_path),
+            "--target-binding", str(binding_path),
+            "--target-precheck", str(binding_path),
+            "--output", str(report_dir),
+        ],
+        timeout=120,
+    )
+    return report_dir, binding_path, preflight_path
+
+
 def top_findings(report, limit=4):
     findings = list(report.get("findings") or [])
     findings.sort(key=lambda x: int(x.get("signal_count") or 0), reverse=True)
@@ -343,13 +404,17 @@ Measure one high-signal path with the same goal/input/model/quality criteria bef
 """
 
 
-def write_public_output(output_dir, markdown, receipt):
+def write_public_output(output_dir, markdown, receipt, stage2_sources=None):
     output_dir = Path(output_dir)
     if output_dir.exists():
         raise RuntimeError("PUBLIC_OUTPUT_EXISTS")
     output_dir.mkdir(mode=0o700, parents=False)
     (output_dir / "result.md").write_text(markdown, encoding="utf-8")
     (output_dir / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    for source, name in (stage2_sources or []):
+        source = Path(source)
+        if source.is_file() and source.name in {"verified_savings_report.json", "verified_savings_report.md", "target-binding.json", "provider-preflight.json"}:
+            shutil.copyfile(source, output_dir / name)
 
 
 def append_runner_file(env_name, text):
@@ -460,7 +525,32 @@ def main():
         report = load_report(result_dir)
         receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha)
         markdown = format_result(report, target_repo, meta, lang, issue_url, run_url, receipt=receipt)
-        write_public_output(public_output_dir, markdown, receipt)
+        stage2_sources = []
+        try:
+            stage2_dir, binding_path, preflight_path = run_universal_stage2(
+                workspace, target_dir, result_dir, target_repo, meta["default_branch"], runner_temp, issue_number
+            )
+            stage2_markdown_path = stage2_dir / "verified_savings_report.md"
+            stage2_json_path = stage2_dir / "verified_savings_report.json"
+            stage2_markdown = stage2_markdown_path.read_text(encoding="utf-8")
+            markdown = markdown + "\n\n---\n\n" + stage2_markdown
+            stage2_sources = [
+                (stage2_markdown_path, "stage2_verified_savings_report.md"),
+                (stage2_json_path, "stage2_verified_savings_report.json"),
+                (binding_path, "stage2_target_binding.json"),
+                (preflight_path, "stage2_provider_preflight.json"),
+            ]
+        except Exception:
+            # Preserve the established static result if the optional Stage 2
+            # subprocess cannot complete; never fabricate a savings claim.
+            fallback = (
+                "## CostDoctor Stage 2\n\n**상태:** `STAGE2_UNAVAILABLE`\n\n"
+                "이번 실행에서 범용 Stage 2 진단을 완료하지 못했습니다. 실제 비용·절감률은 검증되지 않았습니다."
+                if lang != "en"
+                else "## CostDoctor Stage 2\n\n**Status:** `STAGE2_UNAVAILABLE`\n\nUniversal Stage 2 could not complete in this run. Actual cost and savings remain unverified."
+            )
+            markdown = markdown + "\n\n---\n\n" + fallback
+        write_public_output(public_output_dir, markdown, receipt, stage2_sources)
         append_runner_file("GITHUB_STEP_SUMMARY", markdown + "\n")
         append_runner_file(
             "GITHUB_OUTPUT",

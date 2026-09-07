@@ -51,6 +51,14 @@ class PublicVerifiedSavingsReportTests(unittest.TestCase):
         self.assertIn("예상 효과", markdown)
         self.assertIn("Provider Secret이 없어도", markdown)
 
+    def test_fixed_percentage_ranges_are_hidden_without_measured_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = MODULE.build_report(self._static(), self._acceptance(), Path(tmp), {"credential_present": False}, None, target_binding=self._binding())
+            markdown = MODULE.render_markdown(report)
+        self.assertNotIn("5~25%", markdown)
+        self.assertNotIn("0~30%", markdown)
+        self.assertIn("UNKNOWN_UNTIL_MEASURED", markdown)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

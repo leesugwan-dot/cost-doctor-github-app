@@ -96,7 +96,7 @@ def provider_gate(preflight: dict[str, Any], provider_result: dict[str, Any] | N
     return {"status": "BLOCKED", "provider_authenticated": False, "verdict": "PROVIDER_RESULT_MISSING", "measurement_grade": "UNKNOWN", "verified_savings_available": False, "raw_secret_stored": False, "provider": provider, "model": model}
 
 
-def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, provider: dict[str, Any]) -> list[dict[str, Any]]:
+def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, provider: dict[str, Any], evidence_level: str = "L1_STRUCTURAL_DIAGNOSIS") -> list[dict[str, Any]]:
     aggregate = ((binding or {}).get("static_precheck") or {}).get("aggregate_counts") or {}
     findings = static_report.get("findings") or []
     if not aggregate:
@@ -115,9 +115,10 @@ def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, pr
         count = sum(int(value or 0) for name, value in aggregate.items() if str(name) in aliases or str(name).upper() == key)
         if count <= 0:
             continue
-        result.append({"priority": len(result) + 1, "problem": title, "evidence": {"signal_count": count, "source": "TARGET_REPOSITORY_CHECKOUT", "not_billing": True}, "why_cost_grows": "반복 호출·재시도·불필요한 문맥이 실제 사용량을 늘릴 수 있습니다.", "improvement": recommendation, "expected_impact": impact, "estimated_savings_range": estimate, "verification_level": "L1_STRUCTURAL_DIAGNOSIS", "provider_detected": provider.get("provider") or "UNKNOWN"})
+        bounded_estimate = estimate if evidence_level in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS", "L4_PROVIDER_REPORTED_USAGE", "L5_VERIFIED_SAVINGS"} else "UNKNOWN_UNTIL_MEASURED"
+        result.append({"priority": len(result) + 1, "problem": title, "evidence": {"signal_count": count, "source": "TARGET_REPOSITORY_CHECKOUT", "not_billing": True}, "why_cost_grows": "반복 호출·재시도·불필요한 문맥이 실제 사용량을 늘릴 수 있습니다.", "improvement": recommendation, "expected_impact": impact, "estimated_savings_range": bounded_estimate, "verification_level": evidence_level, "provider_detected": provider.get("provider") or "UNKNOWN"})
     if not result:
-        result.append({"priority": 1, "problem": "명확한 비용 구조 후보 없음", "evidence": {"source": "TARGET_REPOSITORY_CHECKOUT", "signal_count": 0, "not_billing": True}, "why_cost_grows": "현재 범위에서 LLM 비용 신호가 확인되지 않았습니다.", "improvement": "실제 사용량 또는 안전한 workload descriptor가 있으면 동일 조건 측정을 추가하세요.", "expected_impact": "LOW", "estimated_savings_range": "UNKNOWN", "verification_level": "L1_STRUCTURAL_DIAGNOSIS", "provider_detected": provider.get("provider") or "UNKNOWN"})
+        result.append({"priority": 1, "problem": "명확한 비용 구조 후보 없음", "evidence": {"source": "TARGET_REPOSITORY_CHECKOUT", "signal_count": 0, "not_billing": True}, "why_cost_grows": "현재 범위에서 LLM 비용 신호가 확인되지 않았습니다.", "improvement": "실제 사용량 또는 안전한 workload descriptor가 있으면 동일 조건 측정을 추가하세요.", "expected_impact": "LOW", "estimated_savings_range": "UNKNOWN_UNTIL_MEASURED", "verification_level": evidence_level, "provider_detected": provider.get("provider") or "UNKNOWN"})
     return result[:5]
 
 
@@ -140,7 +141,7 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
     else:
         grade, verdict = "L1_STRUCTURAL_DIAGNOSIS", "STRUCTURAL_DIAGNOSIS"
     reported = provider_result.get("stages") if actual_available and provider_result else {phase: None for phase in PHASES}
-    diagnosis = _diagnosis(static_report, binding, provider)
+    diagnosis = _diagnosis(static_report, binding, provider, grade)
     summary = {
         "what_wasted": diagnosis,
         "what_changed": ["Stage 1 정적 precheck 결과를 Stage 2 진단 후보로 확장", "target checkout의 runner-local shadow에서만 측정 후보를 구성", "정적·fixture 수치는 실제 청구 절감으로 승격하지 않음"],
