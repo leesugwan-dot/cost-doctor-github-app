@@ -44,9 +44,21 @@ def main() -> int:
     cap_ok = Decimal("0") <= approved <= Decimal("0.05")
     provider = contract.get("provider")
     model = contract.get("model")
+    confidence = str(contract.get("confidence") or "UNKNOWN").upper()
     registry_root = Path(__file__).resolve().parents[1] / "registry"
     row = price_row(registry_root, provider, model)
     pricing_status = (row or {}).get("price_grade") if row else "UNKNOWN"
+    pricing_evidence = None
+    if row and pricing_status in {"PROVIDER_PUBLISHED", "CUSTOMER_CONTRACT", "EXPLICIT_ZERO"}:
+        pricing_evidence = {
+            "provider": row.get("provider"),
+            "model": row.get("model"),
+            "price_version": row.get("price_version"),
+            "effective_from": row.get("effective_from"),
+            "price_grade": pricing_status,
+            "source": row.get("source"),
+            "unit_rates_usd": row.get("unit_rates_usd") or {},
+        }
     secret_present = os.environ.get(args.secret_present_env, "") == "1"
     if not cap_ok:
         reason = "SPEND_CAP_INVALID"
@@ -73,6 +85,8 @@ def main() -> int:
         "provider": provider,
         "model": model,
         "adapter": contract.get("adapter"),
+        "provider_confidence": confidence,
+        "provider_confidence_evidence": contract.get("confidence_evidence") or {},
         "credential_name": contract.get("credential_name"),
         "base_url": contract.get("base_url"),
         "credential_present": secret_present,
@@ -81,6 +95,7 @@ def main() -> int:
         "approved_max_spend_usd": str(approved),
         "hard_cap_usd": "0.05",
         "pricing_status": pricing_status,
+        "pricing_evidence": pricing_evidence,
         "workload_ready": bool((binding.get("workload") or {}).get("ready")),
         "target_repository": binding.get("target_repository"),
         "target_commit": binding.get("target_commit"),

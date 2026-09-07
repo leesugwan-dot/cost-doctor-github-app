@@ -533,7 +533,17 @@ def main():
             stage2_markdown_path = stage2_dir / "verified_savings_report.md"
             stage2_json_path = stage2_dir / "verified_savings_report.json"
             stage2_markdown = stage2_markdown_path.read_text(encoding="utf-8")
-            markdown = markdown + "\n\n---\n\n" + stage2_markdown
+            # Stage 2 is the single integrated user report.  It carries the
+            # Stage 1 canonical signal table and the interpretation, so the
+            # earlier verbose static block is not repeated in the comment.
+            receipt_line = (
+                f"\n\n---\n\n검증 영수증: `{receipt['receipt_sha256'][:16]}` · "
+                f"[진단 요청]({issue_url}) · [Actions 실행 기록]({run_url})"
+                if lang != "en"
+                else f"\n\n---\n\nReceipt: `{receipt['receipt_sha256'][:16]}` · "
+                f"[Scan request]({issue_url}) · [GitHub Actions run]({run_url})"
+            )
+            markdown = stage2_markdown + receipt_line
             stage2_sources = [
                 (stage2_markdown_path, "stage2_verified_savings_report.md"),
                 (stage2_json_path, "stage2_verified_savings_report.json"),
