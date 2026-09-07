@@ -56,9 +56,12 @@ def discover(repo: Path, registry_root: Path) -> dict[str, Any]:
         positive = _terms(detection.get("terms"))
         endpoints = _terms(detection.get("endpoint_terms"))
         secrets = _terms(row.get("secret_names"))
-        score = sum(len(re.findall(re.escape(term), joined, flags=re.IGNORECASE)) for term in positive)
-        score += 2 * sum(len(re.findall(re.escape(term), joined, flags=re.IGNORECASE)) for term in endpoints)
-        score += 3 * sum(len(re.findall(re.escape(term), joined, flags=re.IGNORECASE)) for term in secrets)
+        term_hits = {term: len(re.findall(re.escape(term), joined, flags=re.IGNORECASE)) for term in positive}
+        endpoint_hits = {term: len(re.findall(re.escape(term), joined, flags=re.IGNORECASE)) for term in endpoints}
+        secret_hits = {term: len(re.findall(re.escape(term), joined, flags=re.IGNORECASE)) for term in secrets}
+        score = sum(term_hits.values())
+        score += 2 * sum(endpoint_hits.values())
+        score += 3 * sum(secret_hits.values())
         if detection.get("always_for_local") and any(term.lower() in joined.lower() for term in positive):
             score += 1
         if score <= 0:
@@ -71,16 +74,47 @@ def discover(repo: Path, registry_root: Path) -> dict[str, Any]:
                 model_candidates.append((hits, str(model_id)))
         model_candidates.sort(reverse=True)
         model = model_candidates[0][1] if model_candidates else None
+        # Generic words such as ``model`` or ``llm`` are weak evidence only.
+        # SDK imports, explicit model aliases, endpoint terms, and credential
+        # names are stronger and determine whether pricing can be used later.
+        generic_terms = {"model", "llm", "completion", "completions", "base_url"}
+        strong_term_hits = sum(value for term, value in term_hits.items() if term.lower() not in generic_terms)
+        strong_term_hits += sum(endpoint_hits.values()) + sum(model_hits for model_hits, _ in model_candidates)
+        medium_term_hits = sum(value for term, value in term_hits.items() if term.lower() not in generic_terms and term.lower() not in {"openai", "anthropic", "gemini", "upstage", "ollama", "solar"})
+        medium_term_hits += sum(secret_hits.values())
+        provider_name = str(row.get("provider"))
+        if provider_name in {"generic", "unknown_custom"} and not endpoint_hits and not model_candidates and not secret_hits:
+            # Generic detector rows must never outrank an explicitly named
+            # provider merely because a common SDK phrase appears in source.
+            confidence = "WEAK"
+        elif strong_term_hits > 0:
+            confidence = "STRONG"
+        elif medium_term_hits > 0:
+            confidence = "MEDIUM"
+        elif score > 0:
+            confidence = "WEAK"
+        else:
+            confidence = "NONE"
         candidates.append({
             "provider": str(row.get("provider")),
             "adapter": str(row.get("adapter")),
             "score": score,
+            "confidence": confidence,
+            "evidence": {
+                "strong_hits": strong_term_hits,
+                "medium_hits": medium_term_hits,
+                "weak_hits": max(0, score - strong_term_hits),
+                "endpoint_hits": sum(endpoint_hits.values()),
+                "secret_name_hits": sum(secret_hits.values()),
+                "model_alias_hits": sum(model_hits for model_hits, _ in model_candidates),
+            },
             "model": model,
             "credential_name": (secrets[0] if secrets else None),
             "base_url": row.get("default_base_url"),
             "capabilities": row.get("capabilities") or {},
         })
-    candidates.sort(key=lambda item: (-int(item["score"]), item["provider"]))
+    confidence_rank = {"STRONG": 3, "MEDIUM": 2, "WEAK": 1, "NONE": 0}
+    candidates.sort(key=lambda item: (-confidence_rank.get(str(item.get("confidence")), 0), -int(item["score"]), item["provider"]))
     selected = candidates[0] if candidates else None
     if selected and not selected.get("model"):
         provider_models = [row for row in models if row.get("provider") == selected["provider"] and row.get("status") in {"active", "preview"}]
@@ -94,6 +128,8 @@ def discover(repo: Path, registry_root: Path) -> dict[str, Any]:
             "credential_name": selected.get("credential_name"),
             "base_url": selected.get("base_url"),
             "secret_source_required": "TARGET_REPOSITORY_GITHUB_SECRET" if selected.get("credential_name") else "NONE",
+            "confidence": selected.get("confidence", "WEAK"),
+            "confidence_evidence": selected.get("evidence", {}),
         }
         status = "DETECTED"
     else:
@@ -101,7 +137,7 @@ def discover(repo: Path, registry_root: Path) -> dict[str, Any]:
         status = "UNKNOWN_PROVIDER"
     return {
         "status": status,
-        "provider_candidates": [{key: item[key] for key in ("provider", "adapter", "score", "model", "credential_name", "base_url")} for item in candidates],
+        "provider_candidates": [{key: item[key] for key in ("provider", "adapter", "score", "confidence", "evidence", "model", "credential_name", "base_url")} for item in candidates],
         "selected": contract,
         "registry_rows_considered": len(providers),
         "model_rows_considered": len(models),
