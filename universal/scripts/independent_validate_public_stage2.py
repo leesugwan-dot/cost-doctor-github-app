@@ -69,11 +69,19 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
         failures.append("FREE_PATH_SAFETY_BOUNDARY_FAILED")
     if status == "MULTIPLE_PROVIDERS" and report.get("trust_level") == "L3_ESTIMATED_COST_SAVINGS":
         failures.append("MULTI_PROVIDER_GLOBAL_PRICE_FALSE_PASS")
+    # A free/secretless Stage 2 run may still resolve an official pricing row,
+    # but it must not use that row for a savings claim without provider usage.
+    # Presence of a matching, unused row is safe; only a mismatch is a false
+    # pass and is already recorded above.
+    pricing_safe = (not pricing) or pricing_equality
     checks = {
         "target_endpoint_provider_model_recomputed": bool((provider and (model or status in {"MULTIPLE_PROVIDERS", "OPENAI_COMPATIBLE_CUSTOM"})) or (not provider and status == "UNKNOWN_PROVIDER")),
-        "pricing_provider_model_strict_equality": pricing_equality if pricing_required else not pricing,
+        "pricing_provider_model_strict_equality": pricing_equality if pricing_required else pricing_safe,
         "provider_conflicts_clear": not contract.get("conflicts") and status not in {"AMBIGUOUS_PROVIDER"},
-        "l3_delta_gate": has_delta,
+        # L2 structural/deterministic reports intentionally have no billed
+        # Before/After delta.  Enforce the delta only when the report claims
+        # an estimated or verified cost-saving level.
+        "l3_delta_gate": (not pricing_required) or has_delta,
         "per_finding_levels_safe": not any(item.startswith("FINDING_LEVEL") or item.startswith("RETRY_PROMOTED") for item in failures),
         "free_path_zero_execution": safety_zero,
         "multi_provider_not_forced": status != "MULTIPLE_PROVIDERS" or report.get("trust_level") != "L3_ESTIMATED_COST_SAVINGS",

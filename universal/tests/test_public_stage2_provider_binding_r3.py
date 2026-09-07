@@ -88,6 +88,15 @@ class ProviderBindingR3Tests(unittest.TestCase):
         self.assertEqual(levels["RETRY_LOOP"], "L1_STRUCTURAL_DIAGNOSIS")
         self.assertEqual(levels["MODEL_CALL"], "L2_DETERMINISTIC_MEASUREMENT")
 
+    def test_secretless_matching_pricing_row_does_not_fail_independent_l2(self):
+        contract = {"provider": "upstage", "model": "solar-pro3", "endpoint": "https://api.upstage.ai/v1", "client_family": "openai-compatible", "confidence": "STRONG", "provider_identity_status": "DETECTED", "conflicts": []}
+        preflight = {"credential_present": False, "pricing_status": "PROVIDER_PUBLISHED", "pricing_evidence": {"provider": "upstage", "model": "solar-pro3"}, "pricing_binding": {"strict_equality": True}}
+        with tempfile.TemporaryDirectory() as tmp:
+            report = REPORT.build_report({"findings": [{"rule": "MODEL_CALL", "signal_count": 1}]}, {"local_verdict": "PASS", "workloads": []}, Path(tmp), preflight, None, target_binding=self.binding(contract))
+        independent = INDEPENDENT.validate(self.binding(contract), preflight, report)
+        self.assertTrue(independent["checks"]["pricing_provider_model_strict_equality"])
+        self.assertEqual(independent["verdict"], "PASS")
+
     def test_multi_provider_cannot_reach_l3(self):
         contract = {"provider": "MULTIPLE_PROVIDERS", "model": None, "client_family": "multiple", "confidence": "NONE", "provider_identity_status": "MULTIPLE_PROVIDERS", "conflicts": ["MULTIPLE_EXPLICIT_PROVIDERS"]}
         preflight = {"credential_present": False, "pricing_status": "PROVIDER_PUBLISHED", "pricing_evidence": {"provider": "openai", "model": "gpt-5.6-luna"}, "pricing_binding": {"strict_equality": False}}
