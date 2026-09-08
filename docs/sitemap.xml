@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/ko/</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/PUBLIC_SCAN.md</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/PRIVATE_REPO_SELF_SCAN.md</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/guides/llm-cost-optimization.md</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/guides/llm-retry-cost.md</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/guides/prompt-cache-cost.md</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/guides/token-context-cost.md</loc></url>
+  <url><loc>https://leesugwan-dot.github.io/cost-doctor-github-app/guides/static-analysis-boundary.md</loc></url>
+</urlset>

@@ -8,6 +8,7 @@ provider receipt can promote the same schema to VERIFIED_SAVINGS.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -142,16 +143,31 @@ def _canonical_counts(static_report: dict[str, Any], binding: dict[str, Any] | N
 
 def _measurement_for_rule(rule: str, measurement: dict[str, Any]) -> dict[str, Any] | None:
     context = measurement.get("context") or {}
+    runtime = measurement.get("runtime") or {}
     retry = measurement.get("retry") or {}
     cache = measurement.get("cache") or {}
     budget = measurement.get("budget") or {}
+    if rule == "MODEL_CALL":
+        paths = list(runtime.get("call_path_evidence") or measurement.get("request_paths") or [])
+        runtime_paths = [row for row in paths if isinstance(row, dict) and row.get("call_kind") == "runtime_invocation"]
+        test_paths = [row for row in paths if isinstance(row, dict) and row.get("call_kind") == "test_eval_invocation"]
+        docs_paths = [row for row in paths if isinstance(row, dict) and row.get("call_kind") == "docs_example_invocation"]
+        import_paths = [row for row in paths if isinstance(row, dict) and row.get("call_kind") == "sdk_import_only"]
+        runtime_count = int(runtime.get("runtime_invocation_count") or 0)
+        test_count = int(runtime.get("test_eval_invocation_count") or 0)
+        docs_count = int(runtime.get("docs_example_invocation_count") or 0)
+        import_count = int(runtime.get("sdk_import_only_count") or 0)
+        if runtime_count or test_count or docs_count or import_count:
+            return {"metric": "request_path_evidence", "value": runtime_count, "unit": "runtime invocation(s)", "runtime_invocation_count": runtime_count, "test_eval_invocation_count": test_count, "docs_example_invocation_count": docs_count, "sdk_import_only_count": import_count, "locations": runtime_paths[:8], "runtime_locations": runtime_paths[:8], "test_eval_locations": test_paths[:8], "docs_example_locations": docs_paths[:8], "sdk_import_locations": import_paths[:8], "claim": "runtime path evidence is static; actual calls and billed usage were not executed"}
     if rule == "RETRY_LOOP":
         if retry.get("disabled_config_count") and not retry.get("active_config_count"):
             return {"metric": "retry_activation", "value": "disabled", "disabled_config_count": int(retry.get("disabled_config_count") or 0), "unit": "configuration", "claim": "negative evidence; active retry usage was not observed"}
         if retry.get("configured_upper_bound_attempts") is not None:
-            return {"metric": "retry_upper_bound_attempts", "value": int(retry["configured_upper_bound_attempts"]), "unit": "attempts", "claim": "configured upper bound; not observed usage"}
+            return {"metric": "retry_upper_bound_attempts", "value": int(retry["configured_upper_bound_attempts"]), "unit": "total attempts", "semantics": "stop_after_attempt total attempts", "locations": list(retry.get("evidence") or [])[:8], "claim": "configured upper bound; not observed usage"}
+        if retry.get("active_config_count"):
+            return {"metric": "retry_configuration", "value": int(retry.get("active_config_count") or 0), "unit": "active configuration(s)", "semantics": "generic max_retries total attempts unknown", "locations": list(retry.get("evidence") or [])[:8], "claim": "active retry configuration found; total attempts and billed calls are unknown"}
     if rule == "CACHE_SIGNAL" and cache.get("cacheable_candidate_chars", 0) and cache.get("llm_relevant_occurrences", 1):
-        return {"metric": "cacheable_repetition_chars", "value": int(cache["cacheable_candidate_chars"]), "unit": "characters", "claim": "source repetition candidate for AI input; not cache hit rate"}
+        return {"metric": "cacheable_repetition_chars", "value": int(cache["cacheable_candidate_chars"]), "unit": "characters", "llm_relevant_occurrences": int(cache.get("llm_relevant_occurrences") or 0), "ordinary_cache_occurrences": int(cache.get("ordinary_cache_occurrences") or 0), "locations": list(cache.get("llm_cache_evidence") or [])[:8], "claim": "AI-input cache candidate; prefix stability, TTL, hit rate and billing effect are unverified"}
     if rule == "TOKEN_LIMIT" and budget.get("declared_values"):
         return {"metric": "declared_context_or_output_limits", "value": list(budget["declared_values"]), "unit": "configured token limit", "claim": "configuration evidence; not provider usage"}
     if rule in {"MODEL_CALL", "CACHE_SIGNAL", "TOKEN_LIMIT"} and (context.get("repeated_candidate_chars", 0) or context.get("repeated_token_estimate", 0)):
@@ -208,8 +224,23 @@ def _estimated_cost_effect(measurement: dict[str, Any], preflight: dict[str, Any
     return {"metric": "avoidable_input_cost_per_call", "value_usd": money(per_call), "input_tokens": tokens, "unit": "USD per hypothetical call", "claim": "official pricing plus deterministic before/optimized delta; not billed usage and no monthly extrapolation"}
 
 
+def _request_bound_measurement(measurement: dict[str, Any]) -> bool:
+    """Require a quantity to be tied to one concrete runtime request group."""
+    context = measurement.get("context") if isinstance(measurement.get("context"), dict) else measurement
+    runtime = measurement.get("runtime") if isinstance(measurement.get("runtime"), dict) else {}
+    call_group = str(measurement.get("call_group_id") or context.get("call_group_id") or "")
+    payload_scope = str(measurement.get("payload_scope_id") or context.get("payload_scope_id") or "")
+    before_scope = str(context.get("before_payload_scope") or "")
+    optimized_scope = str(context.get("optimized_payload_scope") or "")
+    paths = list(measurement.get("request_paths") or runtime.get("call_path_evidence") or [])
+    has_runtime_path = any(str(row.get("call_kind")) == "runtime_invocation" for row in paths if isinstance(row, dict))
+    return bool(call_group and payload_scope and before_scope and optimized_scope and has_runtime_path)
+
+
 def _pricing_bound_measurement(measurement: dict[str, Any]) -> bool:
     """Require a reproducible before/optimized quantity delta for L3."""
+    if not _request_bound_measurement(measurement):
+        return False
     context = measurement.get("context") or {}
     values = _context_delta_values(context)
     if values is None:
@@ -238,6 +269,47 @@ def _static_info(static_report: dict[str, Any], rule: str) -> dict[str, Any]:
     return {}
 
 
+def _action_plan(rule: str, *, runtime_count: int, test_count: int, docs_count: int, locations: list[dict[str, Any]], cache: dict[str, Any], retry: dict[str, Any]) -> dict[str, str]:
+    """Return a finding-specific action with a measurable decision rule."""
+    first = locations[0] if locations else {}
+    location = f"{first.get('relative_path')}:{first.get('line_start')}-{first.get('line_end')}" if first.get("relative_path") else "the reported call group"
+    if rule == "MODEL_CALL" and runtime_count:
+        return {
+            "ko": f"`{location}`의 runtime 호출 그룹에 요청 ID와 호출 횟수를 기록하세요. 같은 목적·입력에서 1회 초과가 관측될 때만 호출 병합을 검토하고, 1회면 변경하지 마세요.",
+            "en": f"Instrument request IDs and call counts for the runtime group at `{location}`. Consider merging only when the same goal and input exceed one call; make no change when it is one call.",
+            "measure": "request group count, input tokens, quality, retry count",
+            "exclude": "a model call by itself is not proven waste",
+        }
+    if rule == "MODEL_CALL":
+        return {
+            "ko": "현재 확인된 호출은 테스트·평가·문서 또는 SDK import 후보입니다. 실제 runtime 호출로 확인되기 전에는 비용 누수로 수정하지 마세요.",
+            "en": "The observed references are test/evaluation, documentation, or SDK-import candidates. Do not change them as cost waste until a production runtime call is confirmed.",
+            "measure": "production call group and provider usage receipt",
+            "exclude": "test/docs/import-only references",
+        }
+    if rule == "RETRY_LOOP":
+        active = retry.get("negative_evidence") == "RETRY_ACTIVE_CONFIGURED"
+        return {
+            "ko": "활성 재시도 설정과 실제 재시도 횟수를 같은 request ID로 기록하세요. 설정값과 관측값이 모두 확인될 때만 상한을 비용 영향으로 사용하고, 비활성 설정은 변경하지 마세요." if active else "현재 활성 재시도 증폭이 확인되지 않았으므로 코드를 바꾸지 마세요. 다음 실행에서 request ID별 재시도 횟수만 기록하세요.",
+            "en": "Record configured retry semantics and observed retries under the same request ID. Use a cost-impact bound only when both are present; do not change disabled settings." if active else "No active retry amplification was confirmed. Make no code change; record retry counts by request ID on the next run.",
+            "measure": "observed retries, total attempts, failed/successful requests",
+            "exclude": "retry strings or disabled configuration alone",
+        }
+    if rule == "CACHE_SIGNAL":
+        return {
+            "ko": "표시된 캐시 위치에서 AI 입력 키·prefix·TTL·적중 여부를 기록하세요. 적중률과 Provider billing 효과가 확인되기 전에는 절감량으로 부르지 말고 일반 파일/CI 캐시와 분리하세요.",
+            "en": "At the reported cache location, record AI-input key/prefix, TTL, hits, and misses. Keep it separate from file/CI cache and do not call it savings until hit rate and provider billing effect are known.",
+            "measure": "cache hits/misses, prefix stability, TTL, billed cached-input usage",
+            "exclude": "ordinary cache strings and unbound repetition",
+        }
+    return {
+        "ko": "표시된 설정·문맥 범위에서 Before/After 입력량과 품질을 같은 workload로 비교하세요. 필수 사실 보존이 실패하면 변경을 적용하지 마세요.",
+        "en": "Compare Before/After input size and quality for the same workload in the reported scope. Do not apply a change if required facts are lost.",
+        "measure": "same-workload input tokens, output quality, retry and rework",
+        "exclude": "byte reduction without a bound token/usage measurement",
+    }
+
+
 def _priority_score(rule: str, info: dict[str, Any], measurement: dict[str, Any] | None, overlap: dict[str, Any], retry: dict[str, Any], cache: dict[str, Any]) -> int:
     confidence = str(info.get("signal_confidence") or "MEDIUM").upper()
     category = str(info.get("source_category") or "UNKNOWN").upper()
@@ -245,12 +317,19 @@ def _priority_score(rule: str, info: dict[str, Any], measurement: dict[str, Any]
     score += {"RUNTIME_CODE": 20, "CONFIG": 15, "TEST_EVAL": 5, "DOCS_EXAMPLE": 0}.get(category, 0)
     if rule == "MODEL_CALL":
         score += int(overlap.get("MODEL_CALL+RETRY_LOOP", 0) or 0) * 8 + int(overlap.get("MODEL_CALL+CACHE_SIGNAL", 0) or 0) * 8
+        runtime_count = int((measurement or {}).get("runtime_invocation_count") or 0)
+        if runtime_count == 0:
+            score -= 45
+            if int((measurement or {}).get("test_eval_invocation_count") or 0) or int((measurement or {}).get("docs_example_invocation_count") or 0):
+                score = min(score, 15)
     elif rule == "RETRY_LOOP":
         score += int(overlap.get("MODEL_CALL+RETRY_LOOP", 0) or 0) * 8
         if retry.get("negative_evidence") == "RETRY_DISABLED_OBSERVED": score -= 25
+        if retry.get("negative_evidence") != "RETRY_ACTIVE_CONFIGURED": score = min(score, 20)
     elif rule == "CACHE_SIGNAL":
         score += int(overlap.get("MODEL_CALL+CACHE_SIGNAL", 0) or 0) * 8
         if not cache.get("llm_relevant_occurrences", cache.get("llm_relevant_candidates", cache.get("cacheable_candidate_chars", 0))): score -= 25
+        if cache.get("ordinary_cache_occurrences") and not cache.get("llm_relevant_occurrences"): score = min(score, 15)
     elif rule == "TOKEN_LIMIT":
         score += int(overlap.get("MODEL_CALL+TOKEN_LIMIT", 0) or 0) * 8
     if measurement and measurement.get("value") not in (None, 0, "disabled"): score += 10
@@ -285,6 +364,22 @@ def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, pr
         finding_level = _finding_level(key, measurement_value, actual_available=actual_available, global_grade=evidence_level)
         category = str(info.get("source_category") or "UNKNOWN")
         confidence = str(info.get("signal_confidence") or "MEDIUM")
+        runtime = measurement.get("runtime") or {}
+        runtime_count = int(runtime.get("runtime_invocation_count") or 0)
+        test_count = int(runtime.get("test_eval_invocation_count") or 0)
+        docs_count = int(runtime.get("docs_example_invocation_count") or 0)
+        locations = list((measurement_value or {}).get("locations") or [])
+        # A mixed static finding must report the strongest observed source
+        # category, not the category of whichever scanner row happened to be
+        # returned first.  Runtime evidence outranks test/eval and docs-only
+        # references for the user-facing explanation.
+        if key == "MODEL_CALL":
+            if runtime_count:
+                category = "RUNTIME_CODE"
+            elif test_count:
+                category = "TEST_EVAL"
+            elif docs_count:
+                category = "DOCS_EXAMPLE"
         if key == "RETRY_LOOP" and retry_analysis.get("negative_evidence") == "RETRY_DISABLED_OBSERVED":
             title = "재시도 관련 구조(활성 증폭 미확인)"
             recommendation = "현재 활성 재시도 증폭은 확인되지 않았습니다. 테스트·문서 신호만 검토하고 실제 실행 횟수는 별도로 확인하세요."
@@ -295,8 +390,49 @@ def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, pr
             impact = "LOW"
         if category == "DOCS_EXAMPLE" and confidence == "WEAK":
             impact = "LOW"
+        if key == "MODEL_CALL" and runtime_count == 0:
+            impact = "LOW"
+            confidence = "WEAK" if (test_count or docs_count) else confidence
+            title = "모델 호출 경로 후보(실행 경로 미확정)"
+            recommendation = "SDK import·테스트·문서 신호와 실제 runtime 호출을 분리하세요. 실제 호출 경로가 확인된 뒤 동일 입력으로 사용량을 측정하세요."
+        elif key == "MODEL_CALL" and runtime_count > 0:
+            impact = "MEDIUM"
+            title = "실행 경로의 모델 호출 후보"
+            recommendation = "표시된 runtime 호출 그룹의 동일 입력 호출 횟수와 Provider 사용량을 먼저 계측하세요."
+        if key == "RETRY_LOOP" and retry_analysis.get("negative_evidence") != "RETRY_ACTIVE_CONFIGURED":
+            impact = "LOW"
+        if key == "CACHE_SIGNAL" and not cache_analysis.get("llm_relevant_occurrences", cache_analysis.get("llm_relevant_candidates", 0)):
+            impact = "LOW"
         priority_score = _priority_score(key, info, measurement_value, overlap_analysis, retry_analysis, cache_analysis)
+        runtime_locations = list((measurement_value or {}).get("runtime_locations") or ((measurement_value or {}).get("locations") or []))
+        test_locations = list((measurement_value or {}).get("test_eval_locations") or [])
+        docs_locations = list((measurement_value or {}).get("docs_example_locations") or [])
+        if key == "RETRY_LOOP" and locations:
+            runtime_locations = [row for row in locations if isinstance(row, dict) and row.get("active_runtime_candidate")]
+            test_locations = [row for row in locations if isinstance(row, dict) and row.get("source_category") == "TEST_EVAL"]
+            docs_locations = [row for row in locations if isinstance(row, dict) and row.get("source_category") == "DOCS_EXAMPLE"]
+        if key == "CACHE_SIGNAL" and locations:
+            runtime_locations = [row for row in locations if isinstance(row, dict) and row.get("source_category") in {"RUNTIME_CODE", "CONFIG"}]
+            test_locations = [row for row in locations if isinstance(row, dict) and row.get("source_category") == "TEST_EVAL"]
+            docs_locations = [row for row in locations if isinstance(row, dict) and row.get("source_category") == "DOCS_EXAMPLE"]
+        action_plan = _action_plan(key, runtime_count=runtime_count, test_count=test_count, docs_count=docs_count, locations=runtime_locations or locations, cache=cache_analysis, retry=retry_analysis)
+        runtime_cost_impact = bool(
+            (key == "MODEL_CALL" and runtime_count and ((measurement_value or {}).get("request_bound") is True or actual_available))
+            or (key == "RETRY_LOOP" and retry_analysis.get("negative_evidence") == "RETRY_ACTIVE_CONFIGURED" and runtime_count and actual_available)
+            or (key == "CACHE_SIGNAL" and (measurement_value or {}).get("request_bound") is True and cache_analysis.get("hit_rate") not in {None, "UNKNOWN"})
+        )
+        finding_fingerprint = json.dumps({"rule": key, "count": count, "source_category": category, "runtime_locations": runtime_locations, "test_locations": test_locations, "docs_locations": docs_locations}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        finding_id = "finding-" + hashlib.sha256(finding_fingerprint.encode("utf-8")).hexdigest()[:16]
+        estimated_range = None
+        if finding_level in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS", "L4_PROVIDER_REPORTED_USAGE", "L5_VERIFIED_SAVINGS"} and measurement_value:
+            if measurement_value.get("metric") == "repeated_context_chars":
+                values = _context_delta_values(measurement_value)
+                if values is not None and values["avoidable_delta_tokens"] > 0:
+                    estimated_range = {"kind": "deterministic_token_estimate", "minimum": values["avoidable_delta_tokens"], "maximum": values["avoidable_delta_tokens"], "unit": "estimated input tokens per comparable request", "claim": "not provider usage or billed cost"}
+            elif measurement_value.get("metric") == "retry_upper_bound_attempts":
+                estimated_range = {"kind": "configured_attempt_bound", "minimum": 0, "maximum": measurement_value.get("value"), "unit": "total attempts", "claim": "not observed request count"}
         result.append({
+            "finding_id": finding_id,
             "priority": 99,
             "priority_score": priority_score,
             "rule": key,
@@ -306,9 +442,14 @@ def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, pr
             "structural_evidence": {"source": "TARGET_REPOSITORY_CHECKOUT", "signal_count": count, "not_billing": True, "source_category": category, "signal_confidence": confidence, "source_category_counts": info.get("source_category_counts", {})},
             "provider_detection_evidence": {"provider": contract.get("provider"), "model": contract.get("model"), "endpoint": contract.get("endpoint") or contract.get("base_url"), "client_family": contract.get("client_family"), "confidence": contract.get("confidence", "UNKNOWN"), "identity_source": contract.get("identity_source"), "source_category": category, "source_category_confidence": confidence, "conflicts": contract.get("conflicts", []), "raw_hits_internal_only": True},
             "deterministic_measurement": measurement_value,
+            "locations": runtime_locations,
+            "location_groups": {"runtime": runtime_locations, "test_eval": test_locations, "docs_example": docs_locations, "sdk_import": list((measurement_value or {}).get("sdk_import_locations") or [])},
+            "runtime_impact": {"runtime_invocation_count": runtime_count, "test_eval_invocation_count": test_count, "docs_example_invocation_count": docs_count, "status": "RUNTIME_CANDIDATE" if runtime_count else "NON_RUNTIME_OR_UNRESOLVED"},
+            "runtime_cost_impact": runtime_cost_impact,
             "evidence": {"signal_count": count, "source": "TARGET_STATIC_PRECHECK", "not_billing": True},
-            "why_cost_grows": "반복 호출·재시도·불필요한 문맥이 실제 사용량을 늘릴 수 있습니다." if key not in {"RETRY_LOOP", "CACHE_SIGNAL"} else ("재시도 설정이 활성화되면 실패 1건이 여러 호출로 늘어날 수 있습니다." if key == "RETRY_LOOP" and impact != "LOW" else "문자열이 있다는 사실만으로 AI 비용 증가를 확정할 수 없습니다."),
+            "why_cost_grows": "실행 경로의 호출·재시도·불필요한 문맥이 실제 사용량을 늘릴 수 있습니다." if key not in {"RETRY_LOOP", "CACHE_SIGNAL"} and runtime_count else ("실행 경로가 확인되지 않아 현재 비용 영향은 확정할 수 없습니다." if key == "MODEL_CALL" else ("활성 재시도가 확인되면 실패 1건이 여러 시도로 늘어날 수 있습니다." if key == "RETRY_LOOP" and impact != "LOW" else "문자열이 있다는 사실만으로 AI 비용 증가를 확정할 수 없습니다.")),
             "improvement": recommendation,
+            "action_plan": action_plan,
             "impact_level": impact,
             "expected_impact": impact,
             "source_category": category,
@@ -316,7 +457,7 @@ def _diagnosis(static_report: dict[str, Any], binding: dict[str, Any] | None, pr
             "model_call_kind": (signal_analysis.get("model_call") or {}).get("invocation_candidates", 0) and "invocation_candidate" or "sdk_or_reference_only" if key == "MODEL_CALL" else None,
             "overlap": {name: value for name, value in overlap_analysis.items() if key in name},
             "estimated_effect": measurement_value if finding_level in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS", "L4_PROVIDER_REPORTED_USAGE", "L5_VERIFIED_SAVINGS"} else None,
-            "estimated_savings_range": None,
+            "estimated_savings_range": estimated_range,
             "verification_level": finding_level,
             "provider_detected": provider.get("provider") or "UNKNOWN",
         })
@@ -355,7 +496,13 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
     distinct_levels = sorted({value for value in finding_levels.values() if value}, key=lambda value: LEVEL_ORDER.get(value, 0))
     verification_label = f"혼합 ({' · '.join(HUMAN_LEVELS.get(value, '확인 수준') for value in distinct_levels)})" if len(distinct_levels) > 1 else HUMAN_LEVELS.get(grade, "확인 수준")
     max_priority = max((int(item.get("priority_score") or 0) for item in diagnosis), default=0)
-    optimization_priority = "높음" if max_priority >= 75 else "중간" if max_priority >= 35 else "낮음"
+    runtime_cost_findings = [item for item in diagnosis if item.get("runtime_cost_impact") is True]
+    optimization_priority = "높음" if runtime_cost_findings and max_priority >= 75 else "중간" if runtime_cost_findings or any(int(item.get("priority_score") or 0) >= 35 for item in diagnosis) else "낮음"
+    priority_reason = (
+        "REQUEST_BOUND_RUNTIME_COST_IMPACT" if runtime_cost_findings else
+        "RUNTIME_CANDIDATE_WASTE_UNPROVEN" if any((item.get("runtime_impact") or {}).get("runtime_invocation_count") for item in diagnosis) else
+        "STRUCTURAL_OR_NON_RUNTIME_ONLY"
+    )
     estimated_cost_effect = _estimated_cost_effect(deterministic_evidence, preflight, grade)
     summary = {
         "what_wasted": diagnosis,
@@ -369,6 +516,7 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
         "net_saving": "UNKNOWN" if not actual_available else provider_result.get("net_saving_usd", "UNKNOWN"),
         "verification_label": verification_label,
         "optimization_priority": optimization_priority,
+        "priority_reason": priority_reason,
         "humanized": {"verification_level": verification_label, "priority": optimization_priority},
         "deterministic_measurement": deterministic_evidence if deterministic else None,
         "estimated_cost_effect": estimated_cost_effect,
@@ -377,7 +525,15 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
             "delta_invariant": (deterministic_evidence.get("context") or {}).get("delta_invariant") or {"status": "NOT_AVAILABLE"},
             "claim": "정적 문맥 구조 후보이며 Provider 청구 토큰·비용이 아님",
         },
+        "measurement_states": {
+            "structural_diagnosis": "COMPLETE" if binding else "PARTIAL",
+            "actual_usage": "VERIFIED" if actual_available else "NOT_AVAILABLE_IN_FREE_PATH",
+            "actual_cost": "VERIFIED" if actual_available and provider_result else "NOT_AVAILABLE",
+            "actual_savings": "VERIFIED" if actual_available else "NOT_VERIFIED",
+            "quality_non_regression": "VERIFIED" if actual_available else "NOT_RUN",
+        },
     }
+    stage2_status = "COMPLETE_STAGE2" if binding and binding.get("target_fingerprint") else "PARTIAL_STAGE1_ONLY"
     return {
         "schema": "costdoctor.public-verified-savings.universal-stage2.v3",
         "schema_version": "4.0.0",
@@ -387,7 +543,7 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
         "trust_level": grade,
         "target_binding": {"repository": (binding or {}).get("target_repository"), "ref": (binding or {}).get("target_ref"), "commit": (binding or {}).get("target_commit"), "fingerprint": (binding or {}).get("target_fingerprint"), "provider_contract": _contract(binding), "workload": {key: value for key, value in workload.items() if key not in {"prompt", "items"}}, "bound": bool(binding and binding.get("target_fingerprint"))},
         "static_precheck": {"status": "PASS" if binding else "UNKNOWN", "canonical_signal_counts": aggregate, "signal_counts": aggregate, "canonical_source": "TARGET_STATIC_PRECHECK", "source": "TARGET_REPOSITORY_CHECKOUT" if binding else "UNBOUND", "not_billing_or_savings": True},
-        "stage2_diagnosis": {"status": "COMPLETE_STAGE2", "evidence_level": grade, "finding_evidence_levels": finding_levels, "mixed_evidence": len(distinct_levels) > 1, "evidence_levels_present": distinct_levels, "provider_detected": detected, "provider_confidence": confidence, "provider_candidates": ((binding or {}).get("provider_detection") or {}).get("provider_candidates", []), "provider_groups": ((binding or {}).get("provider_detection") or {}).get("provider_groups", []), "findings": diagnosis, "secretless_continuation": True, "raw_detector_hits_user_visible": False, "optimization_priority": optimization_priority},
+        "stage2_diagnosis": {"status": stage2_status, "evidence_level": grade, "finding_evidence_levels": finding_levels, "mixed_evidence": len(distinct_levels) > 1, "evidence_levels_present": distinct_levels, "provider_detected": detected, "provider_confidence": confidence, "provider_candidates": ((binding or {}).get("provider_detection") or {}).get("provider_candidates", []), "provider_groups": ((binding or {}).get("provider_detection") or {}).get("provider_groups", []), "findings": diagnosis, "secretless_continuation": True, "raw_detector_hits_user_visible": False, "optimization_priority": optimization_priority, "priority_reason": priority_reason, "measurement_states": summary["measurement_states"]},
         "fixture_reference": fixture,
         "provider": {**provider, "pricing_bound": priced, "pricing_binding": preflight.get("pricing_binding") or {}},
         "reported_stages": reported,
@@ -483,7 +639,9 @@ def render_markdown(report: dict[str, Any], language: str = "ko") -> str:
     provider = report.get("provider") or {}
     contract = target.get("provider_contract") or {}
     short_commit = str(target.get("commit") or "UNKNOWN")[:10]
-    level = HUMAN_LEVELS_EN.get(report.get("trust_level"), "Mixed evidence") if english else summary.get("verification_label", "확인 수준")
+    # Both languages render the same canonical evidence level.  The wording
+    # changes, but the claim level never does.
+    level = HUMAN_LEVELS_EN.get(report.get("trust_level"), "Mixed evidence") if english else HUMAN_LEVELS.get(report.get("trust_level"), "확인 수준")
     priority = str(summary.get("optimization_priority") or "LOW")
     priority_text = {"높음": "High", "중간": "Medium", "낮음": "Low"}.get(priority, priority) if english else priority
     provider_name = provider.get("provider") or contract.get("provider")
@@ -492,6 +650,8 @@ def render_markdown(report: dict[str, Any], language: str = "ko") -> str:
     category_labels = {"RUNTIME_CODE": "runtime code", "CONFIG": "configuration", "TEST_EVAL": "tests/evaluation", "DOCS_EXAMPLE": "docs/examples", "GENERATED_VENDOR": "generated/vendor", "UNKNOWN": "unknown"}
     category_labels_ko = {"RUNTIME_CODE": "실행 코드", "CONFIG": "설정", "TEST_EVAL": "테스트/평가", "DOCS_EXAMPLE": "문서/예제", "GENERATED_VENDOR": "생성물/외부 코드", "UNKNOWN": "확인 불가"}
     confidence_labels = {"STRONG": "strong", "MEDIUM": "medium", "WEAK": "weak"} if english else {"STRONG": "강함", "MEDIUM": "중간", "WEAK": "약함"}
+    priority_reason_labels = {"REQUEST_BOUND_RUNTIME_COST_IMPACT": "request-bound runtime cost-impact evidence is present", "RUNTIME_CANDIDATE_WASTE_UNPROVEN": "runtime call candidates exist, but waste, cache billing, and retry amplification are not proven", "STRUCTURAL_OR_NON_RUNTIME_ONLY": "only structural or non-runtime signals are present"} if english else {"REQUEST_BOUND_RUNTIME_COST_IMPACT": "특정 runtime 요청에 결속된 비용 영향 근거가 있습니다", "RUNTIME_CANDIDATE_WASTE_UNPROVEN": "runtime 호출 후보는 있지만 낭비·캐시 과금·재시도 증폭은 입증되지 않았습니다", "STRUCTURAL_OR_NON_RUNTIME_ONLY": "구조 신호 또는 비실행 경로만 확인됐습니다"}
+    measure_labels_ko = {"request group count, input tokens, quality, retry count": "요청 그룹별 호출 수·입력 토큰·품질·재시도 횟수", "observed retries, total attempts, failed/successful requests": "관측된 재시도·총 시도·실패/성공 요청 수", "cache hits/misses, prefix stability, TTL, billed cached-input usage": "캐시 적중/미적중·prefix 안정성·TTL·청구된 캐시 입력 사용량", "same-workload input tokens, output quality, retry and rework": "동일 workload 입력 토큰·출력 품질·재시도·재작업"}
     rule_labels = {"MODEL_CALL": "Model-call candidates", "RETRY_LOOP": "Retry candidates", "CACHE_SIGNAL": "AI-request context reuse", "TOKEN_LIMIT": "Token/context limits"} if english else {"MODEL_CALL": "모델 호출 후보", "RETRY_LOOP": "재시도 후보", "CACHE_SIGNAL": "AI 요청 문맥 재사용 후보", "TOKEN_LIMIT": "토큰·문맥 제한 후보"}
     def measurement_text(item: dict[str, Any]) -> str:
         m = item.get("deterministic_measurement") or {}
@@ -499,6 +659,17 @@ def render_markdown(report: dict[str, Any], language: str = "ko") -> str:
             return "not measured" if english else "아직 정량 측정 전"
         if m.get("metric") == "retry_activation" and m.get("value") == "disabled":
             return "active retry amplification not found" if english else "활성 재시도 증폭 확인 안 됨"
+        if m.get("metric") == "request_path_evidence":
+            count = int(m.get("runtime_invocation_count") or 0)
+            tests = int(m.get("test_eval_invocation_count") or 0)
+            docs = int(m.get("docs_example_invocation_count") or 0)
+            if count:
+                return f"{count:,} runtime invocation candidate(s); actual calls not executed" if english else f"runtime 호출 후보 {count:,}개; 실제 호출은 실행하지 않음"
+            return f"no production call confirmed ({tests:,} test/eval, {docs:,} docs/example candidate(s))" if english else f"production 호출 미확정 (테스트/평가 {tests:,}개, 문서/예제 {docs:,}개 후보)"
+        if m.get("metric") == "retry_upper_bound_attempts":
+            return (f"configured total-attempt bound: {int(m.get('value') or 0):,}; observed usage unknown" if english else f"설정된 총 시도 상한: {int(m.get('value') or 0):,}회; 실제 사용량 미확인")
+        if m.get("metric") == "retry_configuration":
+            return (f"{int(m.get('value') or 0):,} active retry configuration(s); attempt semantics unknown" if english else f"활성 재시도 설정 {int(m.get('value') or 0):,}개; 총 시도 의미 미확인")
         if m.get("metric") == "repeated_context_chars":
             values = _context_delta_values(m)
             if values is None:
@@ -521,18 +692,70 @@ def render_markdown(report: dict[str, Any], language: str = "ko") -> str:
         category = category_labels.get(str(item.get("source_category")), "unknown") if english else category_labels_ko.get(str(item.get("source_category")), "확인 불가")
         confidence = confidence_labels.get(str(item.get("signal_confidence")), "medium" if english else "중간")
         problem = RULE_TEXT_EN.get(item.get("rule"), (item.get("problem", "Review item"), "Review this signal with measured usage.", "LOW"))[0] if english else item.get("problem", "확인 항목")
-        why = ("A repeated call, retry, or unnecessary context can increase usage." if english else item.get("why_cost_grows", "반복 호출이나 불필요한 문맥은 실제 사용량을 늘릴 수 있습니다."))
-        recommendation = RULE_TEXT_EN.get(item.get("rule"), ("", "Review with evidence.", "LOW"))[1] if english else item.get("improvement", "근거를 확인한 뒤 같은 조건으로 측정하세요.")
-        lines.extend([f"### {item.get('priority', 0)}. {problem}", f"- Found: **{int(item.get('canonical_signal_count') or 0)} candidate(s)** · source: **{category}** · confidence: **{confidence}**" if english else f"- 발견: **{int(item.get('canonical_signal_count') or 0)}개 후보** · 근거 범위: **{category}** · 신뢰도: **{confidence}**", f"- Why it matters: {why}" if english else f"- 왜 비용 문제가 될 수 있나: {why}", f"- Recommendation: {recommendation}" if english else f"- 추천: {recommendation}", f"- Measured impact: **{measurement_text(item)}**" if english else f"- 현재 측정 가능한 영향: **{measurement_text(item)}**", f"- Evidence level: **{HUMAN_LEVELS_EN.get(item.get('verification_level'), 'Structural review')}**" if english else f"- 검증 수준: **{HUMAN_LEVELS.get(item.get('verification_level'), '구조 분석')}**", ""])
+        action_plan = item.get("action_plan") or {}
+        why = (f"{action_plan.get('exclude', 'Do not promote this signal without bound evidence')}." if english else {"MODEL_CALL": "모델 호출 자체만으로 비용 낭비라고 확정할 수 없습니다.", "RETRY_LOOP": "재시도 문자열이나 비활성 설정만으로 비용 증가를 확정할 수 없습니다.", "CACHE_SIGNAL": "일반 캐시 문자열과 결속되지 않은 반복만으로 절감량을 확정할 수 없습니다.", "TOKEN_LIMIT": "설정 한도만으로 비용 절감이나 품질을 확정할 수 없습니다."}.get(item.get("rule"), "근거가 결속되기 전에는 절감으로 승격하지 않습니다."))
+        recommendation = action_plan.get("en") if english else action_plan.get("ko")
+        if not recommendation:
+            recommendation = RULE_TEXT_EN.get(item.get("rule"), ("", "Review with evidence.", "LOW"))[1] if english else item.get("improvement", "근거를 확인한 뒤 같은 조건으로 측정하세요.")
+        groups = item.get("location_groups") or {}
+        runtime_locations = list(groups.get("runtime") or item.get("locations") or [])[:5]
+        test_locations = list(groups.get("test_eval") or [])[:5]
+        docs_locations = list(groups.get("docs_example") or [])[:5]
+        import_locations = list(groups.get("sdk_import") or [])[:5]
+        location_text = ", ".join(f"{row.get('relative_path')}:{row.get('line_start')}-{row.get('line_end')}" for row in runtime_locations if row.get("relative_path"))
+        if not location_text:
+            location_text = "not resolved" if english else "위치 미확정"
+        runtime = item.get("runtime_impact") or {}
+        runtime_text = (f"{runtime.get('runtime_invocation_count', 0)} runtime candidate(s)" if english else f"runtime 호출 후보 {runtime.get('runtime_invocation_count', 0)}개") if runtime.get("runtime_invocation_count") else ("no production runtime call confirmed" if english else "production runtime 호출 미확정")
+        expected = item.get("estimated_savings_range") or {}
+        expected_text = "not quantified" if english else "산정 불가"
+        if expected:
+            expected_text = f"{expected.get('minimum')}–{expected.get('maximum')} {expected.get('unit')}" if english else f"{expected.get('minimum')}–{expected.get('maximum')} {expected.get('unit')}"
+        structure_lines = []
+        if test_locations:
+            text_value = ", ".join(f"{row.get('relative_path')}:{row.get('line_start')}-{row.get('line_end')}" for row in test_locations if row.get("relative_path"))
+            structure_lines.append((f"- Test/evaluation references (not runtime): `{text_value}`" if english else f"- 테스트/평가 근거(실행 경로 아님): `{text_value}`"))
+        if docs_locations:
+            text_value = ", ".join(f"{row.get('relative_path')}:{row.get('line_start')}-{row.get('line_end')}" for row in docs_locations if row.get("relative_path"))
+            structure_lines.append((f"- Docs/example references (not runtime): `{text_value}`" if english else f"- 문서/예제 근거(실행 경로 아님): `{text_value}`"))
+        if import_locations:
+            text_value = ", ".join(f"{row.get('relative_path')}:{row.get('line_start')}-{row.get('line_end')}" for row in import_locations if row.get("relative_path"))
+            structure_lines.append((f"- SDK import references (call not confirmed): `{text_value}`" if english else f"- SDK import 근거(호출 미확정): `{text_value}`"))
+        measure_value = action_plan.get("measure", "same-workload usage and quality") if english else measure_labels_ko.get(action_plan.get("measure"), "동일 workload 사용량과 품질")
+        lines.extend([f"### {item.get('priority', 0)}. {problem}", f"- Found: **{int(item.get('canonical_signal_count') or 0)} candidate(s)** · source: **{category}** · confidence: **{confidence}**" if english else f"- 발견: **{int(item.get('canonical_signal_count') or 0)}개 후보** · 근거 범위: **{category}** · 신뢰도: **{confidence}**", f"- Runtime path: **{runtime_text}** · location: `{location_text}`" if english else f"- 실행 경로: **{runtime_text}** · 위치: `{location_text}`", *structure_lines, f"- Why it matters: {why}" if english else f"- 왜 비용 문제가 될 수 있나: {why}", f"- Recommendation: {recommendation}" if english else f"- 추천: {recommendation}", f"- Measure next: **{measure_value}**" if english else f"- 다음 측정: **{measure_value}**", f"- Measured impact: **{measurement_text(item)}**" if english else f"- 현재 측정 가능한 영향: **{measurement_text(item)}**", f"- Possible effect: **{expected_text}**" if english else f"- 가능한 영향: **{expected_text}**", f"- Evidence level: **{HUMAN_LEVELS_EN.get(item.get('verification_level'), 'Structural review')}**" if english else f"- 검증 수준: **{HUMAN_LEVELS.get(item.get('verification_level'), '구조 분석')}**", ""])
     cost_effect = summary.get("estimated_cost_effect")
     if cost_effect:
         cost_line = (f"- Official-price estimate for one hypothetical call: **${cost_effect['value_usd']}** (not billed usage)" if english else f"- 공식 가격 기반 추정(가상 호출 1회): **${cost_effect['value_usd']}** (실제 청구 사용량 아님)")
     else:
         cost_line = "- Actual usage is not connected; billed cost and savings were not measured." if english else "- 실제 사용량이 연결되지 않아 청구 비용과 실제 절감률은 측정하지 않았습니다."
     stage_status = diagnosis.get("status", "COMPLETE_STAGE2")
-    status_text = {"COMPLETE_STAGE2": "Complete" if english else "완료", "PARTIAL_STAGE1_ONLY": "Partial: Stage 1 only" if english else "부분 완료: Stage 1만 완료", "FAILED_INPUT": "Input failed" if english else "입력 실패", "FAILED_INTERNAL": "Internal failure" if english else "내부 실패"}.get(stage_status, stage_status)
-    status_line = f"- Stage 2 status: **{status_text}**" if english else f"- Stage 2 상태: **{status_text}**"
-    lines.extend(["## Cost and measurement" if english else "## 비용·측정", cost_line, status_line, "- Structural measurements are not provider billing." if english else "- 정적 구조 측정값은 Provider 청구량이 아닙니다.", "", "## Safety" if english else "## 안전", "- Read-only public scan · no target code execution · no model API call · no Secret · no repository write · no source transfer" if english else "- 읽기 전용 공개 진단 · 대상 코드 실행 없음 · 모델 API 호출 없음 · Secret 없음 · 고객 Repo 수정 없음 · 원문 Source 외부전송 없음", "", "## Receipt" if english else "## 검증 영수증", f"- Target commit: `{short_commit}` · receipt is retained in the Actions artifact." if english else f"- 대상 commit 식별값: `{short_commit}` · 자세한 영수증은 Actions Artifact에 보관됩니다.", "", "This is an automated CostDoctor result." if english else "이 댓글은 CostDoctor 자동 분석 결과입니다."])
+    status_text = {"COMPLETE_STAGE2": "Free Stage 2 structural diagnosis: complete" if english else "무료 Stage 2 구조진단: 완료", "PARTIAL_STAGE1_ONLY": "Partial: Stage 1 only" if english else "부분 완료: Stage 1만 완료", "FAILED_INPUT": "Input failed" if english else "입력 실패", "FAILED_INTERNAL": "Internal failure" if english else "내부 실패"}.get(stage_status, stage_status)
+    status_line = f"- {status_text}"
+    states = summary.get("measurement_states") or {}
+    state_label = {
+        "structural_diagnosis": ("structural diagnosis", "구조 진단"),
+        "actual_usage": ("actual usage", "실제 사용량"),
+        "actual_cost": ("actual cost", "실제 비용"),
+        "actual_savings": ("savings verification", "실제 절감 검증"),
+        "quality_non_regression": ("quality non-regression", "품질 비열화 검증"),
+    }
+    state_lines = ["## Evidence status" if english else "## Evidence 상태"]
+    state_values = {
+        "COMPLETE": ("available", "확인 가능"),
+        "VERIFIED": ("verified", "검증됨"),
+        "NOT_AVAILABLE_IN_FREE_PATH": ("not available in free path", "무료 경로에서 없음"),
+        "NOT_AVAILABLE": ("not available", "확인 불가"),
+        "NOT_VERIFIED": ("not verified", "검증 안 됨"),
+        "NOT_RUN": ("not run", "실행 안 함"),
+        "PARTIAL": ("partial", "부분 확인"),
+    }
+    for key, (en_label, ko_label) in state_label.items():
+        raw_value = str(states.get(key) or "UNKNOWN")
+        human_value = state_values.get(raw_value, ("not confirmed", "확인 불가"))
+        state_lines.append(f"- {en_label}: **{human_value[0]}**" if english else f"- {ko_label}: **{human_value[1]}**")
+    priority_reason = summary.get("priority_reason") or ""
+    reason_line = f"- Why this priority: **{priority_reason_labels.get(priority_reason, priority_reason)}**" if english else f"- 이 우선순위의 근거: **{priority_reason_labels.get(priority_reason, '근거 확인 필요')}**"
+    lines.extend(state_lines + ["", "## Cost and measurement" if english else "## 비용·측정", reason_line, cost_line, status_line, "- Structural measurements are not provider billing." if english else "- 정적 구조 측정값은 Provider 청구량이 아닙니다.", "", "## Safety" if english else "## 안전", "- Read-only public scan · no target code execution · no model API call · no Secret · no repository write · no source transfer" if english else "- 읽기 전용 공개 진단 · 대상 코드 실행 없음 · 모델 API 호출 없음 · Secret 없음 · 고객 Repo 수정 없음 · 원문 Source 외부전송 없음", "", "## Receipt" if english else "## 검증 영수증", f"- Target commit: `{short_commit}` · receipt is retained in the Actions artifact." if english else f"- 대상 commit 식별값: `{short_commit}` · 자세한 영수증은 Actions Artifact에 보관됩니다.", "", "This is an automated CostDoctor result." if english else "이 댓글은 CostDoctor 자동 분석 결과입니다."])
     return "\n".join(lines)
 
 

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://leesugwan-dot.github.io/cost-doctor-github-app/sitemap.xml

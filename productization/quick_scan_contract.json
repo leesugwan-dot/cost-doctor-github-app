@@ -1,0 +1,46 @@
+{
+  "schema": "costdoctor.quick-scan.contract.v1",
+  "entry": "static_pages_form_to_trusted_issue_fallback",
+  "default_flow": [
+    "accepted",
+    "analyzing",
+    "complete",
+    "failure"
+  ],
+  "input": {
+    "one_public_github_url": true,
+    "accepted_shapes": ["repository", "tree", "branch", "blob", "file"],
+    "normalization": "owner/repository",
+    "max_length": 2048,
+    "allowed_scheme": "https",
+    "allowed_host": "github.com",
+    "private_repository": "fail_closed",
+    "redirects": "not_followed",
+    "ssrf": "blocked_by_host_and_scheme_allowlist",
+    "path_injection": "rejected"
+  },
+  "trusted_dispatch": {
+    "client_credentials": false,
+    "client_workflow_choice": false,
+    "client_ref_choice": false,
+    "client_runner_choice": false,
+    "client_shell_choice": false,
+    "client_secret_choice": false,
+    "client_write_destination": false,
+    "implementation": "GitHub Issue Form fallback starts the existing trusted public-scan workflow"
+  },
+  "safety": {
+    "model_api_calls": 0,
+    "target_code_execution": 0,
+    "customer_repo_write": 0,
+    "operator_pc_source_storage": false,
+    "external_telemetry": false,
+    "raw_source_in_result": false
+  },
+  "fallback": {
+    "issue_form_url": "https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml",
+    "preserved": true,
+    "prefill_parameters": ["repository_url", "result_language"]
+  },
+  "honest_boundary": "A static Pages site cannot dispatch a GitHub Action without a user-authorized GitHub interaction; the validated URL is carried into the trusted Issue Form fallback instead of exposing credentials."
+}

@@ -4,6 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="CostDoctor is a free, read-only GitHub review that diagnoses AI and LLM cost-waste structure and measures safe deterministic opportunities.">
+  <link rel="canonical" href="https://leesugwan-dot.github.io/cost-doctor-github-app/">
+  <link rel="alternate" hreflang="en" href="https://leesugwan-dot.github.io/cost-doctor-github-app/">
+  <link rel="alternate" hreflang="ko" href="https://leesugwan-dot.github.io/cost-doctor-github-app/ko/">
+  <link rel="alternate" hreflang="x-default" href="https://leesugwan-dot.github.io/cost-doctor-github-app/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="CostDoctor — Free AI/LLM cost review for GitHub">
+  <meta property="og:description" content="Paste one public GitHub URL and receive a safe, evidence-bound cost diagnosis.">
+  <meta property="og:url" content="https://leesugwan-dot.github.io/cost-doctor-github-app/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="CostDoctor — Free AI/LLM cost review for GitHub">
+  <meta name="twitter:description" content="Read-only, no API key, no code execution.">
+  <meta property="og:image" content="https://leesugwan-dot.github.io/cost-doctor-github-app/social-preview.svg">
+  <meta name="twitter:image" content="https://leesugwan-dot.github.io/cost-doctor-github-app/social-preview.svg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "CostDoctor",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "GitHub Actions",
+    "url": "https://leesugwan-dot.github.io/cost-doctor-github-app/",
+    "description": "Free, read-only AI and LLM cost review for public GitHub repositories."
+  }
+  </script>
   <title>CostDoctor — Free AI/LLM API cost review</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -22,9 +46,21 @@
         <p class="eyebrow">FREE · READ-ONLY · NO API KEY</p>
         <h1>Find and measure AI/LLM cost-waste structure.</h1>
         <p class="lede">Paste one public GitHub URL. CostDoctor runs a Static Precheck and an evidence-bound Stage 2 diagnosis without executing your code or calling a model.</p>
-        <p class="lede-ko">한국어: GitHub 프로젝트의 AI/LLM API 비용 낭비 신호를 무료로 확인합니다.</p>
+        <p class="lede-ko"><a href="ko/">한국어 안내 보기</a></p>
+        <form id="quick-scan" class="quick-scan" data-quick-scan-form aria-label="Start a free public scan">
+          <label for="repository-url">Public GitHub repository URL</label>
+          <div class="quick-scan-row">
+            <input id="repository-url" data-repository-url name="repository_url" type="url" inputmode="url" autocomplete="url" maxlength="2048" placeholder="https://github.com/owner/repository" required>
+            <select data-result-language name="result_language" aria-label="Result language">
+              <option value="en">English</option>
+              <option value="ko">한국어</option>
+            </select>
+            <button class="button primary" type="submit">Start free scan</button>
+          </div>
+          <p class="quick-scan-status" data-quick-scan-status data-state="idle" aria-live="polite">One URL only. The trusted GitHub form confirms the public-scan notice before it starts.</p>
+        </form>
         <div class="actions" aria-label="Get started">
-          <a class="button primary" href="https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml">Scan a public repository</a>
+          <a class="button secondary" href="https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml">Open fallback Issue Form</a>
           <a class="button secondary" href="PRIVATE_REPO_SELF_SCAN.md">Private repository Self-Scan</a>
           <a class="text-link" href="https://github.com/marketplace/actions/costdoctor-repository-review">Install the GitHub Action →</a>
         </div>
@@ -50,8 +86,8 @@
         <article class="path-card">
           <p class="card-kicker">PUBLIC REPOSITORY</p>
           <h3>Paste one public GitHub URL</h3>
-          <p>Open the scan form, paste the URL, choose a language, and submit. The result is posted as a sanitized Issue comment.</p>
-          <a class="arrow-link" href="https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml">Start the free scan →</a>
+          <p>The Quick Scan checks the address in your browser, then carries only the normalized owner/repository into the trusted GitHub form. The result is posted as one sanitized Issue comment.</p>
+          <a class="arrow-link" href="#quick-scan">Start the free scan →</a>
         </article>
         <article class="path-card">
           <p class="card-kicker">PRIVATE REPOSITORY</p>
@@ -89,7 +125,7 @@
       </div>
       <div class="result-card" role="img" aria-label="Sanitized Stage 2 example showing priority, measured context delta, and safety">
         <div><span>REVIEW PRIORITY</span><b>MED</b><small>evidence-bound</small></div>
-        <div><span>CONTEXT DELTA</span><b>43%</b><small>structural candidate</small></div>
+        <div><span>CONTEXT DELTA</span><b>UNKNOWN</b><small>measure same workload</small></div>
         <div><span>API CALLS</span><b>0</b><small>free scan</small></div>
         <div><span>QUALITY</span><b>—</b><small>not run</small></div>
       </div>
@@ -125,5 +161,6 @@ steps:
     <p>CostDoctor is Apache-2.0 open source. Static scan signals are not verified savings.</p>
     <p><a href="https://github.com/leesugwan-dot/cost-doctor-github-app">View the repository</a> · <a href="https://github.com/leesugwan-dot/cost-doctor-github-app/blob/main/LICENSE">License</a></p>
   </footer>
+  <script src="quick-scan.js" defer></script>
 </body>
 </html>

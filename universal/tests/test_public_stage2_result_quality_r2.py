@@ -82,6 +82,11 @@ class PublicStage2ResultQualityR2Tests(unittest.TestCase):
         preflight = {"credential_present": False, "pricing_status": "PROVIDER_PUBLISHED", "pricing_evidence": {"provider": "openai", "model": "gpt-5.6-luna", "price_grade": "PROVIDER_PUBLISHED", "source": "official", "unit_rates_usd": {"input_tokens": 1.0}}, "pricing_binding": {"strict_equality": True}}
         measurement = self.measurement()
         measurement["context"].update({"before_token_estimate": 200, "optimized_token_estimate": 100, "avoidable_delta_tokens": 100})
+        measurement["call_group_id"] = "call-group-1"
+        measurement["payload_scope_id"] = "payload-raw-1"
+        measurement["context"].update({"before_payload_scope": "payload-raw-1", "optimized_payload_scope": "payload-opt-1"})
+        measurement["runtime"] = {"runtime_invocation_count": 1, "call_path_evidence": [{"call_kind": "runtime_invocation", "relative_path": "src/app.py", "line_start": 10, "line_end": 10}]}
+        measurement["request_paths"] = measurement["runtime"]["call_path_evidence"]
         with tempfile.TemporaryDirectory() as tmp:
             report = REPORT.build_report(self.static(), self.acceptance(), Path(tmp), preflight, None, target_binding=self.binding(measurement=measurement))
             markdown = REPORT.render_markdown(report)

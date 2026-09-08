@@ -1,12 +1,32 @@
-# CostDoctor 무료 공개 저장소 진단
+# CostDoctor Public Scan
 
-[처음 방문했다면 Pages-ready 소개 화면](index.html) · [저장소 README](../README.md) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
+Enter one **public GitHub repository URL**, choose English (default) or 한국어, and submit the trusted Issue Form. The same Issue receives one CostDoctor comment with Stage 1 Static Precheck and Stage 2 Deep Diagnosis.
+
+The free path is read-only: no model API call, no target-code execution, no secret, no customer-repository write, and no source transfer to an operator computer. It separates structural diagnosis, deterministic measurement, actual usage, actual cost, and verified savings. Missing provider evidence stays `UNKNOWN`.
+
+### What you can act on
+
+Every finding aims to show a safe relative location or call group, why the signal may waste runtime cost, what to change or measure next, the current measurable effect, and confidence. Test/docs code, inactive retries, and ordinary caches are not promoted to production cost loss without runtime evidence.
+
+[Open Quick Scan](https://leesugwan-dot.github.io/cost-doctor-github-app/) · [Use the fallback Issue Form](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
+
+---
+
+# 한국어 안내
+
+[처음 방문했다면 Pages Quick Scan 화면](https://leesugwan-dot.github.io/cost-doctor-github-app/) · [저장소 README](../README.md) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
 
 [FAQ](PUBLIC_SCAN_FAQ.md) · [상태 코드](PUBLIC_SCAN_STATUS_CODES.md) · [실제 예시](PUBLIC_SCAN_EXAMPLE.md) · [보안 경계](../SECURITY.md) · [코드/개인정보 처리 초안](../PRIVACY_DRAFT.md) · [기계 판독 계약](../public_scan_contract.json)
 
+## Quick Scan 기본 경로
+
+[Pages Quick Scan](https://leesugwan-dot.github.io/cost-doctor-github-app/)에서 공개 GitHub URL 하나를 입력하면 브라우저가 `owner/repository`로 정규화하고 안전한 GitHub Issue Form으로 이동합니다. 이 정적 화면에는 GitHub credential, workflow, ref, runner, shell, secret이 없습니다. Issue Form은 공개 결과 동의를 받는 trusted fallback 경로이며 기존 `public-scan.yml`을 그대로 사용합니다.
+
+진행 상태는 `요청 접수 → 분석 중 → 완료/실패`로 안내합니다. 실제 결과는 GitHub Issue의 단일 CostDoctor 댓글에서 확인합니다.
+
 ## 가장 간단한 사용법
 
-1. [무료 공개 저장소 진단 시작](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 엽니다.
+1. [Pages Quick Scan](https://leesugwan-dot.github.io/cost-doctor-github-app/) 또는 [fallback Issue Form](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 엽니다.
 2. 검사할 **공개 GitHub 저장소 주소**를 붙여넣습니다.
 3. 결과 언어를 선택합니다.
 4. 공개 진단 고지를 확인하고 `Submit new issue`를 누릅니다.
@@ -24,6 +44,12 @@ CostDoctor는 한 번의 요청에서 Stage 1 Static Precheck와 Stage 2 Deep Di
 - 토큰·문맥 제한 후보(Before/개선 후보/Delta)
 
 결과는 근거 범위와 신뢰도(강함/중간/약함)를 함께 보여줍니다. 숫자는 **실제 API 호출 수, 결함 수, 낭비량, 절감액이 아닐 수 있습니다.** 실제 비용·토큰 절감은 동일 목표·입력·모델·품질 조건의 Before/After 실행 증거가 있어야 검증할 수 있습니다.
+
+## R5 결과 읽는 순서
+
+댓글의 주요 항목은 **후보 수 → 실제 runtime 영향 후보 → 안전한 상대경로/호출 그룹 → 가능한 토큰·비용 영향 → 구체적 측정·수정 방법 → 예상 효과 또는 산정 불가 사유 → 신뢰도와 미확인 항목** 순서로 표시됩니다. 테스트·평가·문서 호출, 비활성 재시도, 일반 파일/CI 캐시는 production 비용 누수로 승격하지 않습니다.
+
+무료 경로에서는 다음 상태를 따로 표시합니다: 구조 진단, 실제 사용량, 실제 비용, 실제 절감 검증, 품질 비열화 검증. 무료 구조 측정은 Provider 청구량이 아니며, 실제 usage와 품질 Evidence가 없으면 절감률은 `UNKNOWN`으로 남습니다.
 
 ## 코드 처리 경계
 

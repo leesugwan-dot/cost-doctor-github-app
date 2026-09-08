@@ -1,73 +1,48 @@
 # CostDoctor
 
-**Free AI/LLM API Cost Review for GitHub — read-only.** Enter one public URL and receive a Static Precheck plus a deeper, evidence-bound diagnosis in the same Issue.
+**Free AI/LLM API Cost Review for GitHub — read-only.** Enter one public repository URL and receive a Static Precheck plus an evidence-bound deep diagnosis in the same Issue.
 
-한국어: **GitHub 프로젝트의 AI/LLM API 비용 낭비 신호를 무료로 확인합니다.** 공개 저장소는 주소 하나로 검사하고, 비공개 저장소는 본인의 GitHub Actions 안에서만 Self-Scan합니다.
+Free, read-only AI/LLM cost review for GitHub, with English as the default and Korean available.
 
-**FREE** · **READ-ONLY** · **NO API KEY** · **NO CODE MODIFICATION** · **NO CUSTOMER SOURCE UPLOAD** · **EXTERNAL TELEMETRY OFF**
+[English](README.md) · [한국어 안내](README.ko.md)
 
-## Start here
+**FREE** · **READ-ONLY** · **NO API KEY** · **NO CODE EXECUTION** · **NO CODE MODIFICATION** · **EXTERNAL TELEMETRY OFF**
 
-[**내 공개 GitHub 무료 검사하기**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [**Private repository Self-Scan**](docs/PRIVATE_REPO_SELF_SCAN.md) · [**GitHub Marketplace에서 Action 설치**](https://github.com/marketplace/actions/costdoctor-repository-review)
+## Start in seconds
 
-공개 진단은 Provider Secret 없이 구조 진단과 가능한 무료 정량 측정을 자동으로 이어갑니다. 실제 비용·절감률은 같은 workload의 Provider usage Evidence가 있을 때만 검증됩니다. 고급 측정 경로는 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요.
+- [Open the Pages Quick Scan](https://leesugwan-dot.github.io/cost-doctor-github-app/)
+- [Open the trusted Issue Form fallback](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)
+- [Run a private-repository Self-Scan](docs/PRIVATE_REPO_SELF_SCAN.md)
+- [Install the GitHub Marketplace Action](https://github.com/marketplace/actions/costdoctor-repository-review)
 
-처음이라면 [Pages-ready 소개 화면](docs/index.html)에서 20초 요약을 확인하세요.
+## What happens
 
-### 10초 요약
+1. Enter one **public GitHub repository URL**.
+2. Choose English (the default) or 한국어.
+3. Submit the trusted GitHub Issue Form.
+4. Receive one CostDoctor comment containing Stage 1 Static Precheck and Stage 2 Deep Diagnosis.
 
-- **무엇인가요?** 코드를 실행하지 않고 AI/LLM 비용 낭비 구조를 찾고 가능한 범위에서 정량화합니다.
-- **무료인가요?** 공개 저장소 진단은 무료이며 API Key가 필요 없습니다.
-- **코드가 바뀌나요?** 아니요. 자동 수정, commit, push, branch, PR, merge를 하지 않습니다.
-- **코드를 가져가나요?** 고객 소스를 운영자 PC로 보내지 않습니다. 공개 진단은 GitHub-hosted runner의 임시 공간에서만 읽습니다.
-- **어디서 시작하나요?** 공개 저장소는 위의 무료 검사 버튼, 비공개 저장소는 Self-Scan 안내를 누릅니다.
+The free path reads a bounded checkout in a temporary GitHub-hosted runner. It does not execute the target project, call an LLM/provider API, request a secret, write to the target repository, or send customer source to an operator computer.
 
-## 공개 저장소: 설치 없이 한 번 사용하기
+## What the result means
 
-1. [무료 공개 저장소 진단 시작](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 엽니다.
-2. 검사할 **공개 GitHub 저장소 주소** 하나를 붙여넣습니다.
-3. 한국어 또는 English를 선택하고 제출합니다.
-4. 완료되면 같은 Issue에 정리된 결과와 검증 영수증이 남습니다.
+The report orders findings as: candidate signal → runtime-impact evidence → safe repository location or call group → measurable token/context effect when available → concrete fix or measurement action → expected effect or why it cannot be estimated → confidence and unknowns.
 
-공개 진단은 실제 API 호출·청구·절감액을 측정하지 않습니다. 정적 신호는 실행 중 낭비량이 아니며, 실제 비용·품질 주장은 별도 Provider Evidence 없이는 `UNKNOWN`입니다. 자세한 범위는 [공개 진단 안내](docs/PUBLIC_SCAN.md)를 보세요.
+Static evidence is not a bill, API usage receipt, or verified savings claim. Without matching provider usage, price, quality, and Before/After evidence, cost and savings stay `UNKNOWN`. Test, evaluation, documentation, inactive-retry, and ordinary-file-cache signals are not promoted to production cost loss without runtime support.
 
-## 비공개 저장소: 내 Actions 안에서 Self-Scan
+## Private repositories
 
-비공개 URL을 공개 스캐너에 붙여넣지 마세요. [Private repository Self-Scan 안내](docs/PRIVATE_REPO_SELF_SCAN.md)를 따라 본인 저장소의 Actions에서 실행합니다.
+Never paste a private URL into the public form. Use [Private Self-Scan](docs/PRIVATE_REPO_SELF_SCAN.md) inside your own GitHub Actions workflow.
 
-| 경계 | 동작 |
+| Boundary | Behavior |
 | --- | --- |
-| 권한 | `contents: read` 기본 |
-| 위치 | 고객 GitHub Actions의 임시 runner |
-| 변경 | commit·push·branch·PR·merge 없음 |
-| 전송 | 고객 source를 운영자 PC로 보내지 않음 |
-| 비용 | API Key·유료 모델 필요 없음 |
+| Permission | `contents: read` by default |
+| Location | Your GitHub-hosted runner's temporary workspace |
+| Writes | No commit, push, branch, PR, or merge |
+| Provider calls | No API key or paid model required for structural diagnosis |
+| Telemetry | External telemetry is off by default |
 
-## 무엇을 알려주나요?
-
-| 신호 | 쉽게 말하면 |
-| --- | --- |
-| 모델 호출 후보 | 실제 호출과 SDK 설정을 구분해 확인 |
-| 재시도 후보 | 활성 재시도와 비활성·문서 신호를 구분 |
-| AI 요청 문맥 재사용 후보 | Provider 문맥 캐시와 일반 캐시를 분리 |
-| 토큰·문맥 제한 후보 | 현재 구조와 줄일 후보를 정량 비교 |
-
-### Sanitized 결과 예시
-
-아래는 [검증용 공개 예시](costdoctor-entry/examples/report.md)의 요약입니다. 특정 프로젝트의 비용이나 절감률을 뜻하지 않습니다.
-
-| 결과 카드 | 예시 |
-| --- | ---: |
-| MODEL CALLS | 101 후보 |
-| RETRY RISK | 0 후보 |
-| CACHE SIGNALS | 3 후보 |
-| TOKEN LIMITS | 3 후보 |
-
-**실제 비용·토큰 절감은 usage Evidence가 없으면 측정하지 않습니다.** 정적 신호는 후보이며, 보고서에는 근거 범위·신뢰도·점검 우선순위·안전 경계가 함께 표시됩니다. 내부 식별자와 원문 코드·비밀키·로컬 경로는 기본 결과에 넣지 않습니다.
-
-## 반복 사용: GitHub Action
-
-한 번 확인한 뒤 모든 변경에서 반복하려면 [Marketplace Action](https://github.com/marketplace/actions/costdoctor-repository-review)을 사용하세요.
+## Repeat checks with the Action
 
 ```yaml
 permissions:
@@ -81,27 +56,27 @@ steps:
     uses: leesugwan-dot/cost-doctor-github-app@v1.0.1
 ```
 
-Action은 runner-local `report.json`과 `report.md`를 만들고 `report-directory`, `scan-status` 출력을 제공합니다. 상세 설정은 [Action 시작 안내](costdoctor-entry/docs/START.md)를 보세요.
+The Action writes a runner-local `report.json` and `report.md` and exposes `report-directory` and `scan-status` outputs. See the [Action start guide](costdoctor-entry/docs/START.md).
 
-## 안전성과 주장 범위
+## Evidence and safety
 
-CostDoctor는 다음을 하지 않습니다.
+- No automatic code fixes, commits, branches, pull requests, merges, pricing, or billing features are enabled.
+- Public Scan and Private Self-Scan are read-only and fail closed on unsafe or incomplete input.
+- Original source, secrets, prompts, private paths, and raw credentials are not placed in public results.
+- Optional verified measurement uses the customer's own provider account, GitHub Secret, and an approved per-workload spend cap.
 
-- 대상 프로젝트 코드를 실행하거나 저장소에 쓰지 않습니다.
-- 자동 수정, PR, merge, 가격·결제 기능을 켜지 않습니다.
-- 정적 신호를 검증된 절감액으로 표시하지 않습니다.
-- 무료 진단에서 API Key를 요구하거나 고객 source를 외부 AI Provider로 보내지 않습니다.
+## Evidence-based guides
 
-실제 Provider 측정은 별도 선택형 범위이며 고객 자신의 계정·GitHub Secret·작업별 지출한도가 필요합니다. [Universal 측정·검증 문서](universal/README.md)는 무료 정적 진단과 분리된 Evidence 경계를 설명합니다.
+- [LLM cost optimization](docs/guides/llm-cost-optimization.md)
+- [Retry cost](docs/guides/llm-retry-cost.md)
+- [Prompt caching](docs/guides/prompt-cache-cost.md)
+- [Token and context cost](docs/guides/token-context-cost.md)
+- [Static-analysis boundary](docs/guides/static-analysis-boundary.md)
 
-## 개인정보와 사용자 Evidence
+## Learn more
 
-외부 telemetry는 기본 OFF입니다. 저장소에 포함된 보고 workflow가 있다면 공개 진단 요청·성공 실행·피드백의 **집계 수치만** 다루며 사용자명, Issue 본문, source, 파일명, 비밀값, private 활동을 추적하지 않습니다. [보고 방식](docs/USER_EVIDENCE_REPORTING.md) · [개인정보 보호 피드백](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=feedback.yml)
-
-## 문서
-
-[무료 공개 진단](docs/PUBLIC_SCAN.md) · [Private Self-Scan](docs/PRIVATE_REPO_SELF_SCAN.md) · [결과 예시](costdoctor-entry/examples/report.md) · [시작 안내](costdoctor-entry/docs/START.md) · [시각 Quick Start](costdoctor-entry/docs/QUICKSTART_VISUAL.md) · [화면 가이드](costdoctor-entry/docs/SCREEN_GUIDE.md) · [FAQ](costdoctor-entry/docs/FAQ.md) · [문제 해결](costdoctor-entry/docs/TROUBLESHOOTING.md) · [중지·Rollback](costdoctor-entry/docs/ROLLBACK.md)
+[Public Scan](docs/PUBLIC_SCAN.md) · [Private Self-Scan](docs/PRIVATE_REPO_SELF_SCAN.md) · [Sanitized result example](costdoctor-entry/examples/report.md) · [Quick Start](costdoctor-entry/docs/QUICKSTART_VISUAL.md) · [FAQ](costdoctor-entry/docs/FAQ.md) · [Rollback](costdoctor-entry/docs/ROLLBACK.md) · [Feedback](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=feedback.yml)
 
 [Privacy](PRIVACY.md) · [Terms](TERMS.md) · [Operator policy](OPERATOR_POLICY.md) · [Security](SECURITY.md) · [Support](SUPPORT.md) · [Apache-2.0 license](LICENSE)
 
-과거 GitHub App 조사 자료는 [legacy reference](docs/LEGACY_GITHUB_APP_REFERENCE.md)로만 보존하며 현재 설치 경로가 아닙니다.
+CostDoctor is Apache-2.0 at the public integration layer. Automatic code changes, paid features, and external-provider automatic fixes are not advertised as available features.
