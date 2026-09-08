@@ -1,4 +1,38 @@
-# CostDoctor Launch Kit
+# CostDoctor English-first Launch Kit
+
+These drafts are ready for review; they are not posted automatically.
+
+## One-line description
+
+CostDoctor is a free, read-only GitHub review that finds AI/LLM cost-waste structure without running or modifying repository code.
+
+## GitHub post draft
+
+Paste one public GitHub URL, choose a language, and get Static Precheck plus an evidence-bound Deep Diagnosis in one Issue. No API key, target-code execution, repository write, or external source transfer in the free path. Provider usage and verified savings remain separate from static hints.
+
+## Show HN draft
+
+Show HN: CostDoctor — a read-only GitHub review for AI/LLM cost signals. It highlights runtime call paths, retry and context-reuse candidates, and tells you what to measure next. It does not invent savings from source lines, run the target project, or ask for an API key.
+
+## DEV / Reddit draft
+
+CostDoctor gives a free, evidence-first review of AI/LLM cost structure in a public GitHub repository. The same Issue combines a static precheck and a deeper diagnosis. Structural findings are clearly separated from deterministic measurements and provider-verified savings.
+
+## LinkedIn / X draft
+
+Free read-only GitHub review for AI/LLM cost signals: one public URL, one Issue, clear evidence boundaries. No API key, no target-code execution, no repo writes. English-first with Korean support.
+
+## Engineering audience draft
+
+The report distinguishes SDK imports from model calls, active retries from inactive/test signals, provider prompt caching from ordinary caches, and structural evidence from actual usage. Findings include a safe location or call group and a concrete measurement action.
+
+## Posting boundary
+
+Do not claim users, traffic, savings, ratings, or testimonials that have not been independently evidenced. External posting requires owner approval. Search Console and native traffic data require explicit authorization.
+
+---
+
+# 한국어 보조 문안
 
 이 문서는 외부 게시 전에 검토할 수 있는 준비 문구입니다. 실제 커뮤니티 게시나 광고는 하지 않습니다.
 

@@ -1,4 +1,18 @@
-# CostDoctor 무료 공개 저장소 진단
+# CostDoctor Public Scan
+
+Enter one **public GitHub repository URL**, choose English (default) or 한국어, and submit the trusted Issue Form. The same Issue receives one CostDoctor comment with Stage 1 Static Precheck and Stage 2 Deep Diagnosis.
+
+The free path is read-only: no model API call, no target-code execution, no secret, no customer-repository write, and no source transfer to an operator computer. It separates structural diagnosis, deterministic measurement, actual usage, actual cost, and verified savings. Missing provider evidence stays `UNKNOWN`.
+
+### What you can act on
+
+Every finding aims to show a safe relative location or call group, why the signal may waste runtime cost, what to change or measure next, the current measurable effect, and confidence. Test/docs code, inactive retries, and ordinary caches are not promoted to production cost loss without runtime evidence.
+
+[Open Quick Scan](https://leesugwan-dot.github.io/cost-doctor-github-app/) · [Use the fallback Issue Form](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
+
+---
+
+# 한국어 안내
 
 [처음 방문했다면 Pages Quick Scan 화면](https://leesugwan-dot.github.io/cost-doctor-github-app/) · [저장소 README](../README.md) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
 

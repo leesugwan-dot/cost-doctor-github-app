@@ -21,7 +21,14 @@ TITLE_PREFIX = "[CostDoctor Scan]"
 URL_HEADING = "### GitHub 저장소 주소"
 LANG_HEADING = "### 결과 언어 / Result language"
 CONFIRM_TEXT = "이 저장소가 공개 저장소이며 진단 결과가 공개 GitHub 이슈에 표시되는 것에 동의합니다."
-SUPPORTED_LANGUAGES = {"한국어": "ko", "English": "en"}
+CONFIRM_TEXT_EN = "I confirm that this is a public repository and that the scan result will be posted to a public GitHub Issue."
+SUPPORTED_LANGUAGES = {
+    "english": "en",
+    "en": "en",
+    "한국어": "ko",
+    "korean": "ko",
+    "ko": "ko",
+}
 RECEIPT_SCHEMA = "costdoctor.public-scan-receipt.v2"
 
 
@@ -89,12 +96,17 @@ def parse_language(body):
     try:
         value = extract_field(body, LANG_HEADING)
     except ValueError:
-        return "ko"
-    return SUPPORTED_LANGUAGES.get(value, "ko")
+        return "en"
+    normalized = str(value).strip().casefold()
+    return SUPPORTED_LANGUAGES.get(normalized, "en")
 
 
 def confirmation_present(body):
-    return f"- [x] {CONFIRM_TEXT}" in body or f"- [X] {CONFIRM_TEXT}" in body
+    return any(
+        f"- [{mark}] {text}" in body
+        for mark in ("x", "X")
+        for text in (CONFIRM_TEXT, CONFIRM_TEXT_EN)
+    )
 
 
 def post_comment(repository, issue_number, token, text):

@@ -1,4 +1,14 @@
-# CostDoctor — GitHub 저장소에서 먼저 확인하기
+# CostDoctor — GitHub repository review
+
+**English first:** run a read-only review on a GitHub repository without an API key, target-code execution, or repository write. The result is a review queue, not a usage receipt or guaranteed saving percentage.
+
+[Start guide](docs/START.md) · [Result guide](docs/RESULTS.md) · [Private permissions](docs/PRIVACY_PERMISSIONS.md) · [한국어 안내](../README.ko.md)
+
+The public path and this runner-local entry point preserve the same boundary: source is read in a temporary workspace, raw secrets and prompts are not reported, and actual cost remains `UNKNOWN` until matching provider usage and quality evidence exist.
+
+---
+
+# 한국어 상세 안내
 
 **상태: 공개 진입점 Pilot — GitHub Ubuntu 실제 실행 및 별도 Windows/Python 보고서 재계산 PASS.** 기존 비공개 App을 공개 설치할 수 있다는 뜻이 아닙니다. 이 폴더는 기존 제품을 교체하지 않습니다.
 

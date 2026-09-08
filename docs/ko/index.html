@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CostDoctor는 코드를 실행하지 않고 GitHub 저장소의 AI·LLM 비용 낭비 구조를 무료로 점검합니다.">
+  <link rel="canonical" href="https://leesugwan-dot.github.io/cost-doctor-github-app/ko/">
+  <link rel="alternate" hreflang="ko" href="https://leesugwan-dot.github.io/cost-doctor-github-app/ko/">
+  <link rel="alternate" hreflang="en" href="https://leesugwan-dot.github.io/cost-doctor-github-app/">
+  <link rel="alternate" hreflang="x-default" href="https://leesugwan-dot.github.io/cost-doctor-github-app/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="CostDoctor — GitHub AI·LLM 비용 점검">
+  <meta property="og:description" content="공개 GitHub URL 하나로 안전한 읽기 전용 비용 구조 진단을 시작하세요.">
+  <meta property="og:url" content="https://leesugwan-dot.github.io/cost-doctor-github-app/ko/">
+  <meta property="og:image" content="https://leesugwan-dot.github.io/cost-doctor-github-app/social-preview.svg">
+  <title>CostDoctor — GitHub AI·LLM 비용 점검</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="nav" aria-label="주요 메뉴">
+      <a class="brand" href="./">CostDoctor</a>
+      <div class="nav-links">
+        <a href="../">English</a>
+        <a href="../PUBLIC_SCAN.md">공개 진단</a>
+        <a href="../PRIVATE_REPO_SELF_SCAN.md">Private Self-Scan</a>
+        <a href="https://github.com/marketplace/actions/costdoctor-repository-review">Marketplace</a>
+      </div>
+    </nav>
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">무료 · 읽기 전용 · API KEY 없음</p>
+        <h1>GitHub에서 AI·LLM 비용이 새는 구조를 확인하세요.</h1>
+        <p class="lede">공개 GitHub URL 하나를 입력하면 Static Precheck와 근거 기반 Stage 2 진단을 이어서 확인합니다. 대상 코드를 실행하거나 모델 API를 호출하지 않습니다.</p>
+        <form id="quick-scan" class="quick-scan" data-quick-scan-form aria-label="무료 공개 진단 시작">
+          <label for="repository-url">공개 GitHub 저장소 주소</label>
+          <div class="quick-scan-row">
+            <input id="repository-url" data-repository-url name="repository_url" type="url" inputmode="url" autocomplete="url" maxlength="2048" placeholder="https://github.com/owner/repository" required>
+            <select data-result-language name="result_language" aria-label="결과 언어">
+              <option value="en">English</option>
+              <option value="ko" selected>한국어</option>
+            </select>
+            <button class="button primary" type="submit">무료 진단 시작</button>
+          </div>
+          <p class="quick-scan-status" data-quick-scan-status data-state="idle" aria-live="polite">주소 하나만 확인한 뒤 안전한 GitHub 양식으로 이동합니다.</p>
+        </form>
+        <div class="actions" aria-label="시작 경로">
+          <a class="button secondary" href="https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml">fallback Issue Form</a>
+          <a class="button secondary" href="../PRIVATE_REPO_SELF_SCAN.md">비공개 저장소 Self-Scan</a>
+          <a class="text-link" href="https://github.com/marketplace/actions/costdoctor-repository-review">Marketplace Action 설치 →</a>
+        </div>
+      </div>
+      <aside class="trust-card" aria-label="안전 경계">
+        <h2>저장소는 그대로입니다.</h2>
+        <ul>
+          <li>읽기 전용 진단</li>
+          <li>자동 수정·push·merge 없음</li>
+          <li>운영자 PC로 source 전송 없음</li>
+          <li>무료 경로 API Key 없음</li>
+          <li>외부 telemetry 기본 OFF</li>
+        </ul>
+      </aside>
+    </div>
+  </header>
+  <main>
+    <section class="section" aria-labelledby="what-you-get">
+      <p class="eyebrow">무엇을 받나요?</p>
+      <h2 id="what-you-get">후보 수가 아니라 근거와 다음 행동을 함께 봅니다.</h2>
+      <div class="signal-grid">
+        <div class="signal"><strong>모델 호출</strong><span>실행 경로 호출 후보와 SDK import를 구분합니다.</span></div>
+        <div class="signal"><strong>재시도</strong><span>활성 증폭과 문서·테스트 신호를 구분합니다.</span></div>
+        <div class="signal"><strong>캐시</strong><span>AI 문맥 캐시와 일반 파일 캐시를 구분합니다.</span></div>
+        <div class="signal"><strong>토큰·문맥</strong><span>재현 가능한 구조적 측정값만 표시합니다.</span></div>
+      </div>
+      <p class="note">무료 경로에는 Provider usage가 없으므로 실제 비용·절감률은 UNKNOWN으로 남을 수 있습니다. 검증된 절감은 동일 workload의 Before/After usage와 품질 Evidence가 있을 때만 표시합니다.</p>
+    </section>
+    <section class="section compact" aria-labelledby="private-path">
+      <p class="eyebrow">비공개 저장소</p>
+      <h2 id="private-path">결과를 공개하고 싶지 않다면 내 Actions에서 실행하세요.</h2>
+      <p>Private Self-Scan은 `contents: read` 범위에서 고객 runner 안에서만 동작합니다. source는 운영자 PC로 전송되지 않습니다.</p>
+      <a class="button primary" href="../PRIVATE_REPO_SELF_SCAN.md">Private Self-Scan 안내</a>
+    </section>
+  </main>
+  <footer class="footer">
+    <p>CostDoctor는 Apache-2.0 공개 통합 계층입니다. 정적 신호는 Verified Savings가 아닙니다.</p>
+    <p><a href="../">English</a> · <a href="https://github.com/leesugwan-dot/cost-doctor-github-app">저장소</a></p>
+  </footer>
+  <script src="../quick-scan.js" defer></script>
+</body>
+</html>

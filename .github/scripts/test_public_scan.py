@@ -77,8 +77,19 @@ English
         body = "### GitHub 저장소 주소\n\nhttps://github.com/a/b\n"
         self.assertFalse(mod.confirmation_present(body))
 
-    def test_default_language_is_korean(self):
-        self.assertEqual(mod.parse_language("### GitHub 저장소 주소\n\nhttps://github.com/a/b\n"), "ko")
+    def test_default_language_is_english(self):
+        self.assertEqual(mod.parse_language("### GitHub 저장소 주소\n\nhttps://github.com/a/b\n"), "en")
+
+    def test_legacy_language_values_are_supported(self):
+        base = "### GitHub 저장소 주소\n\nhttps://github.com/a/b\n\n### 결과 언어 / Result language\n\n{}\n"
+        for value in ("English", "english", "en"):
+            self.assertEqual(mod.parse_language(base.format(value)), "en")
+        for value in ("한국어", "Korean", "korean", "ko"):
+            self.assertEqual(mod.parse_language(base.format(value)), "ko")
+
+    def test_english_confirmation_is_accepted(self):
+        body = "### GitHub 저장소 주소\n\nhttps://github.com/a/b\n\n### 확인\n\n- [x] " + mod.CONFIRM_TEXT_EN
+        self.assertTrue(mod.confirmation_present(body))
 
     def test_rate_limit_fails_closed(self):
         old_api = mod.api

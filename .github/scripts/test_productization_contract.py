@@ -40,6 +40,46 @@ class ProductizationContractTests(unittest.TestCase):
         self.assertNotIn("GITHUB_TOKEN", text)
         self.assertNotIn("api.github.com", text)
 
+    def test_english_is_default_and_korean_route_is_reciprocal(self):
+        landing = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+        korean = (ROOT / "docs" / "ko" / "index.html").read_text(encoding="utf-8")
+        self.assertLess(landing.index('value="en"'), landing.index('value="ko"'))
+        self.assertIn('hreflang="ko"', landing)
+        self.assertIn('hreflang="en"', korean)
+        self.assertIn('hreflang="x-default"', korean)
+        self.assertIn('rel="canonical"', korean)
+
+    def test_seo_and_social_contract_has_no_fake_claims(self):
+        landing = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('application/ld+json', landing)
+        self.assertIn('og:image', landing)
+        self.assertNotIn('aggregateRating', landing)
+        self.assertNotIn('"offers"', landing)
+        self.assertTrue((ROOT / "docs" / "social-preview.svg").exists())
+
+    def test_guides_and_sitemap_are_english_first(self):
+        sitemap = (ROOT / "docs" / "sitemap.xml").read_text(encoding="utf-8")
+        self.assertIn("/ko/", sitemap)
+        for slug in (
+            "llm-cost-optimization.md",
+            "llm-retry-cost.md",
+            "prompt-cache-cost.md",
+            "token-context-cost.md",
+            "static-analysis-boundary.md",
+        ):
+            self.assertIn("/guides/" + slug, sitemap)
+            guide = ROOT / "docs" / "guides" / slug
+            self.assertTrue(guide.exists())
+            self.assertIn("UNKNOWN", guide.read_text(encoding="utf-8"))
+
+    def test_readmes_and_launch_kit_have_english_entry(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        entry = (ROOT / "costdoctor-entry" / "README.md").read_text(encoding="utf-8")
+        launch = (ROOT / "docs" / "LAUNCH_KIT.md").read_text(encoding="utf-8")
+        self.assertLess(readme.index("Free, read-only AI/LLM cost review"), readme.index("한국어"))
+        self.assertIn("English first", entry)
+        self.assertLess(launch.index("English-first Launch Kit"), launch.index("한국어 보조 문안"))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

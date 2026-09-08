@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">CostDoctor — Free LLM and AI API cost review for GitHub</title>
+  <desc id="desc">Read-only, no API key, no code execution.</desc>
+  <rect width="1280" height="640" fill="#08111d"/>
+  <circle cx="1080" cy="90" r="330" fill="#0e7490" opacity=".2"/>
+  <rect x="84" y="80" width="1112" height="480" rx="28" fill="#101b29" stroke="#31536c" stroke-width="2"/>
+  <text x="140" y="190" fill="#7dd3fc" font-family="Arial, sans-serif" font-size="34" font-weight="700">COSTDOCTOR</text>
+  <text x="140" y="275" fill="#e8eef5" font-family="Arial, sans-serif" font-size="54" font-weight="700">Find LLM API cost waste</text>
+  <text x="140" y="340" fill="#e8eef5" font-family="Arial, sans-serif" font-size="54" font-weight="700">before it reaches your bill.</text>
+  <text x="140" y="430" fill="#a8b7c7" font-family="Arial, sans-serif" font-size="28">Free · Read-only · No API key · No code execution</text>
+  <text x="140" y="500" fill="#7dd3fc" font-family="Arial, sans-serif" font-size="24">github.com/leesugwan-dot/cost-doctor-github-app</text>
+</svg>
