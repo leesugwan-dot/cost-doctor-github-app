@@ -66,7 +66,7 @@ class PublicStage2ResultQualityR2Tests(unittest.TestCase):
         self.assertEqual(report["verdict"], "DETERMINISTIC_MEASUREMENT")
         self.assertIn("repeated_context_chars", json.dumps(report, ensure_ascii=False))
         self.assertNotIn("5~25%", markdown)
-        self.assertIn("청구 토큰 아님", markdown)
+        self.assertIn("측정 기준이 일치하지 않아", markdown)
 
     def test_official_price_without_before_after_delta_stays_l2(self):
         preflight = {"credential_present": False, "pricing_status": "PROVIDER_PUBLISHED", "pricing_evidence": {"provider": "openai", "model": "gpt-5.6-luna", "price_grade": "PROVIDER_PUBLISHED", "source": "official", "unit_rates_usd": {"input_tokens": 1.0}}}

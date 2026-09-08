@@ -330,6 +330,13 @@ def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, gener
             "stage2_status": stage2_status,
             "stage2_trust_level": stage2_trust_level,
         },
+        # Keep the tool revision and the scanned target revision separate.
+        # The target HEAD comes from the API-verified metadata and the actual
+        # checkout readback; it is never inferred from the tool SHA.
+        "tool_repository": os.environ.get("GITHUB_REPOSITORY", "UNKNOWN"),
+        "tool_commit": safe_tool_sha(tool_sha),
+        "target_repository": target_repo,
+        "target_commit": meta.get("head"),
         "costdoctor": {"head": safe_tool_sha(tool_sha)},
         "run": {"issue_url": issue_url, "actions_run_url": run_url},
         "claims": {

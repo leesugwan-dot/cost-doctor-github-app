@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -29,7 +30,11 @@ def write_json(path: Path, value: Any) -> None:
 
 def git_value(repo: Path, *args: str) -> str:
     try:
-        return subprocess.check_output(["git", "-C", str(repo), *args], text=True, stderr=subprocess.DEVNULL).strip()
+        # The runner may materialize a checkout under a different OS account
+        # (for example, a local evidence replay).  Scope the safe-directory
+        # exception to this exact read-only target path so commit readback is
+        # never silently replaced with UNKNOWN.
+        return subprocess.check_output(["git", "-c", f"safe.directory={repo}", "-C", str(repo), *args], text=True, stderr=subprocess.DEVNULL).strip()
     except (OSError, subprocess.CalledProcessError):
         return "UNKNOWN"
 
@@ -102,6 +107,7 @@ def _bounded_deterministic_measurement(repo: Path) -> dict[str, Any]:
     total_chars = 0
     context_chars = 0
     repeated_context_chars = 0
+    global_repeated_source_chars = 0
     repeated_lines = 0
     retry_bounds: list[int] = []
     retry_values: list[int] = []
@@ -113,6 +119,7 @@ def _bounded_deterministic_measurement(repo: Path) -> dict[str, Any]:
     cache_ordinary_occurrences = 0
     budget_values: list[int] = []
     seen: dict[str, int] = {}
+    context_seen: dict[str, int] = {}
     units = 0
     category_counts = {key: 0 for key in ("RUNTIME_CODE", "CONFIG", "TEST_EVAL", "DOCS_EXAMPLE", "GENERATED_VENDOR", "UNKNOWN")}
     overlap = {"MODEL_CALL+RETRY_LOOP": 0, "MODEL_CALL+CACHE_SIGNAL": 0, "MODEL_CALL+TOKEN_LIMIT": 0}
@@ -137,8 +144,10 @@ def _bounded_deterministic_measurement(repo: Path) -> dict[str, Any]:
             normalized = re.sub(r"\s+", " ", line)
             local_counts[normalized] = local_counts.get(normalized, 0) + 1
             lower = normalized.lower()
-            if any(mark in lower for mark in ("prompt", "context", "system", "instruction", "messages", "payload")):
+            is_context_line = any(mark in lower for mark in ("prompt", "context", "system", "instruction", "messages", "payload"))
+            if is_context_line:
                 context_chars += len(normalized)
+                context_seen[normalized] = context_seen.get(normalized, 0) + 1
             if any(mark in lower for mark in ("cache", "cached", "cache_control")):
                 if re.search(r"\b(prompt|input|token|model|llm|embedding|cache_control|system|context)\b", lower):
                     cache_candidate_chars += len(normalized)
@@ -147,9 +156,6 @@ def _bounded_deterministic_measurement(repo: Path) -> dict[str, Any]:
                     cache_ordinary_occurrences += len(re.findall(r"\b(?:cache|cached|lru_cache|cache_control)\b", lower))
         for normalized, count in local_counts.items():
             seen[normalized] = seen.get(normalized, 0) + count
-            if count > 1:
-                repeated_lines += count - 1
-                repeated_context_chars += len(normalized) * (count - 1)
         for match in re.finditer(r"(?i)\b(?:max_retries|maxRetries|num_retries|retries|retry_count|attempts|stop_after_attempt)\s*[:=]\s*(\d{1,3})", text):
             value = min(100, int(match.group(1)))
             retry_values.append(value)
@@ -173,13 +179,29 @@ def _bounded_deterministic_measurement(repo: Path) -> dict[str, Any]:
             for left, right in (("MODEL_CALL", "RETRY_LOOP"), ("MODEL_CALL", "CACHE_SIGNAL"), ("MODEL_CALL", "TOKEN_LIMIT")):
                 if hits[left] and hits[right]:
                     overlap[f"{left}+{right}"] += 1
-    global_repeated_chars = sum(len(key) * (count - 1) for key, count in seen.items() if count > 1)
-    repeated_context_chars = max(repeated_context_chars, global_repeated_chars)
+    # Keep the measurement universe explicit.  Repeated lines from the whole
+    # repository are useful as a separate structural signal, but they must not
+    # inflate the repeated *context* denominator used for Before/After/Delta.
+    global_repeated_source_chars = sum(len(key) * (count - 1) for key, count in seen.items() if count > 1)
+    repeated_context_chars = sum(len(key) * (count - 1) for key, count in context_seen.items() if count > 1)
+    repeated_lines = sum(count - 1 for count in context_seen.values() if count > 1)
     denominator = max(1, context_chars)
     repetition_ratio = round(min(1.0, repeated_context_chars / denominator), 6) if context_chars else 0.0
     before_tokens = math.ceil(context_chars / 4) if context_chars else 0
     delta_tokens = math.ceil(repeated_context_chars / 4) if repeated_context_chars else 0
     optimized_tokens = max(0, before_tokens - delta_tokens)
+    delta_invariant = bool(
+        0 <= delta_tokens <= before_tokens
+        and optimized_tokens >= 0
+        and before_tokens - optimized_tokens == delta_tokens
+    )
+    if not delta_invariant:
+        # Never publish mathematically inconsistent quantities.  Structural
+        # character counts remain available, while token Before/After/Delta
+        # are explicitly unavailable to all user-facing/reporting layers.
+        before_tokens = None
+        delta_tokens = None
+        optimized_tokens = None
     available = bool(repeated_context_chars or retry_active or retry_disabled or cache_candidate_chars or budget_values)
     negative = "RETRY_DISABLED_OBSERVED" if retry_disabled and not retry_active else "RETRY_ACTIVE_CONFIGURED" if retry_active else "RETRY_CONFIG_UNKNOWN" if retry_bounds or retry_unknown else "NONE"
     return {
@@ -189,7 +211,7 @@ def _bounded_deterministic_measurement(repo: Path) -> dict[str, Any]:
         "execution": {"target_code_executed": False, "provider_calls": 0, "secret_used": False},
         "scope": {"text_units": units, "bounded_chars_per_unit": 500000, "aggregate_only": True, "bounded_total_chars": 5000000, "analyzed_bytes": total_bytes, "skipped_due_to_size": 0, "excluded_generated": category_counts.get("GENERATED_VENDOR", 0)},
         "source_categories": category_counts,
-        "context": {"candidate_chars": context_chars, "candidate_token_estimate": before_tokens, "before_token_estimate": before_tokens, "optimized_token_estimate": optimized_tokens, "avoidable_delta_tokens": delta_tokens, "repeated_candidate_chars": repeated_context_chars, "repeated_token_estimate": delta_tokens, "repeated_candidate_ratio": repetition_ratio, "repeated_line_candidates": repeated_lines, "token_estimate_method": "UTF-8 source characters / 4; approximate, not provider usage"},
+        "context": {"candidate_chars": context_chars, "candidate_token_estimate": before_tokens, "before_token_estimate": before_tokens, "optimized_token_estimate": optimized_tokens, "avoidable_delta_tokens": delta_tokens, "repeated_candidate_chars": repeated_context_chars, "repeated_token_estimate": delta_tokens, "repeated_candidate_ratio": repetition_ratio, "repeated_line_candidates": repeated_lines, "global_repeated_source_chars": global_repeated_source_chars, "measurement_universe": "CONTEXT_CANDIDATE_LINES_ONLY", "delta_invariant": {"status": "PASS" if delta_invariant else "FAIL", "rule": "0 <= delta <= before; optimized >= 0; before - optimized == delta"}, "token_estimate_method": "UTF-8 source characters / 4; approximate, not provider usage"},
         "retry": {"configured_upper_bound_attempts": max(retry_bounds) if retry_bounds else None, "observed_config_count": len(retry_bounds), "configured_values": sorted(set(retry_values))[:20], "active_config_count": retry_active, "disabled_config_count": retry_disabled, "unknown_config_count": retry_unknown, "negative_evidence": negative},
         "cache": {"cacheable_candidate_chars": cache_candidate_chars, "llm_relevant_occurrences": cache_relevant_occurrences, "ordinary_cache_occurrences": cache_ordinary_occurrences, "repeated_payload_candidate": bool(cache_candidate_chars and repeated_context_chars)},
         "budget": {"declared_values": sorted(set(budget_values))[:20], "count": len(budget_values)},
@@ -241,6 +263,8 @@ def main() -> int:
     result = {
         "schema": "costdoctor.target-binding.v1",
         "status": "PASS",
+        "tool_repository": os.environ.get("GITHUB_REPOSITORY", "UNKNOWN"),
+        "tool_commit": git_value(Path(__file__).resolve().parents[2], "rev-parse", "HEAD"),
         "target_repository": args.target_repository,
         "target_ref": args.target_ref,
         "target_commit": commit,

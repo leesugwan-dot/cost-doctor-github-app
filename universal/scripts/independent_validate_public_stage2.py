@@ -23,6 +23,25 @@ def load(path: Path) -> dict[str, Any]:
     return value
 
 
+def _delta_invariant(context: dict[str, Any]) -> tuple[bool, bool]:
+    """Return (has_measurement_fields, valid) without trusting truthiness."""
+    keys = ("before_token_estimate", "candidate_token_estimate", "optimized_token_estimate", "avoidable_delta_tokens", "repeated_token_estimate")
+    present = any(context.get(key) is not None for key in keys)
+    if not present:
+        return False, True
+    try:
+        before = int(context.get("before_token_estimate", context.get("candidate_token_estimate")))
+        optimized = int(context.get("optimized_token_estimate"))
+        delta = int(context.get("avoidable_delta_tokens", context.get("repeated_token_estimate")))
+    except (TypeError, ValueError):
+        return True, False
+    valid = before >= 0 and optimized >= 0 and delta >= 0 and delta <= before and before - optimized == delta
+    status = (context.get("delta_invariant") or {}).get("status")
+    if status == "FAIL":
+        valid = False
+    return True, valid
+
+
 def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
     failures: list[str] = []
     contract = dict(binding.get("provider_contract") or {})
@@ -32,6 +51,13 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
     pricing = dict(preflight.get("pricing_evidence") or {})
     price_binding = dict(preflight.get("pricing_binding") or {})
     endpoint = str(contract.get("endpoint") or contract.get("base_url") or "")
+    tool_commit = str(binding.get("tool_commit") or "")
+    target_commit = str(binding.get("target_commit") or "")
+    if tool_commit and target_commit and tool_commit != "UNKNOWN" and target_commit != "UNKNOWN" and tool_commit == target_commit:
+        failures.append("TOOL_TARGET_COMMIT_COLLISION")
+    report_target = dict(report.get("target_binding") or {})
+    if report_target and report_target.get("commit") and target_commit and report_target.get("commit") != target_commit:
+        failures.append("TARGET_COMMIT_REPORT_BINDING_MISMATCH")
     pricing_equality = bool(
         pricing.get("provider") == provider
         and pricing.get("model") == model
@@ -46,10 +72,16 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
         failures.append("UPSTAGE_ENDPOINT_OPENAI_PRICING_FALSE_PASS")
     measurement = dict(binding.get("deterministic_measurement") or {})
     context = dict(measurement.get("context") or {})
-    before = int(context.get("before_token_estimate") or context.get("candidate_token_estimate") or 0)
-    optimized = int(context.get("optimized_token_estimate") or 0)
-    delta = int(context.get("avoidable_delta_tokens") or 0)
-    has_delta = before > 0 and optimized >= 0 and delta > 0 and before - optimized == delta
+    has_context_measurement, valid_context_delta = _delta_invariant(context)
+    try:
+        before = int(context.get("before_token_estimate", context.get("candidate_token_estimate")) or 0)
+        optimized = int(context.get("optimized_token_estimate") or 0)
+        delta = int(context.get("avoidable_delta_tokens", context.get("repeated_token_estimate")) or 0)
+    except (TypeError, ValueError):
+        before = optimized = delta = 0
+    has_delta = valid_context_delta and before > 0 and optimized >= 0 and delta > 0
+    if report.get("trust_level") == "L2_DETERMINISTIC_MEASUREMENT" and has_context_measurement and not valid_context_delta:
+        failures.append("L2_DETERMINISTIC_DELTA_INVARIANT_FAILED")
     pricing_required = report.get("trust_level") in {"L3_ESTIMATED_COST_SAVINGS", "L5_VERIFIED_SAVINGS"} or report.get("verdict") in {"ESTIMATED_SAVINGS", "VERIFIED_SAVINGS"}
     if report.get("verdict") == "ESTIMATED_SAVINGS" and not (pricing_equality and status == "DETECTED" and has_delta):
         failures.append("ESTIMATED_SAVINGS_WITHOUT_STRICT_DELTA")
@@ -87,12 +119,15 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
     # pass and is already recorded above.
     pricing_safe = (not pricing) or pricing_equality
     checks = {
+        "tool_target_commit_separate": "TOOL_TARGET_COMMIT_COLLISION" not in failures,
+        "target_commit_report_binding": "TARGET_COMMIT_REPORT_BINDING_MISMATCH" not in failures,
         "target_endpoint_provider_model_recomputed": bool((provider and (model or status in {"MULTIPLE_PROVIDERS", "OPENAI_COMPATIBLE_CUSTOM"})) or (not provider and status == "UNKNOWN_PROVIDER")),
         "pricing_provider_model_strict_equality": pricing_equality if pricing_required else pricing_safe,
         "provider_conflicts_clear": (status == "MULTIPLE_PROVIDERS" and not pricing_required) or (not contract.get("conflicts") and status not in {"AMBIGUOUS_PROVIDER"}),
         # L2 structural/deterministic reports intentionally have no billed
         # Before/After delta.  Enforce the delta only when the report claims
         # an estimated or verified cost-saving level.
+        "l2_delta_invariant": (report.get("trust_level") != "L2_DETERMINISTIC_MEASUREMENT") or (not has_context_measurement) or valid_context_delta,
         "l3_delta_gate": (not pricing_required) or has_delta,
         "per_finding_levels_safe": not any(item.startswith("FINDING_LEVEL") or item.startswith("RETRY_PROMOTED") for item in failures),
         "free_path_zero_execution": safety_zero,
@@ -103,6 +138,8 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
         "schema": "costdoctor.public-stage2-independent-validation.r4.v1",
         "target_repository": binding.get("target_repository"),
         "target_commit": binding.get("target_commit"),
+        "tool_repository": binding.get("tool_repository"),
+        "tool_commit": binding.get("tool_commit"),
         "resolved_provider": provider,
         "resolved_model": model,
         "resolved_endpoint": endpoint or None,

@@ -155,7 +155,14 @@ def _measurement_for_rule(rule: str, measurement: dict[str, Any]) -> dict[str, A
     if rule == "TOKEN_LIMIT" and budget.get("declared_values"):
         return {"metric": "declared_context_or_output_limits", "value": list(budget["declared_values"]), "unit": "configured token limit", "claim": "configuration evidence; not provider usage"}
     if rule in {"MODEL_CALL", "CACHE_SIGNAL", "TOKEN_LIMIT"} and (context.get("repeated_candidate_chars", 0) or context.get("repeated_token_estimate", 0)):
-        return {"metric": "repeated_context_chars", "value": int(context.get("repeated_candidate_chars") or 0), "unit": "characters", "ratio": context.get("repeated_candidate_ratio", 0), "before_token_estimate": context.get("before_token_estimate") or context.get("candidate_token_estimate"), "optimized_token_estimate": context.get("optimized_token_estimate"), "avoidable_delta_tokens": context.get("avoidable_delta_tokens") or context.get("repeated_token_estimate"), "token_estimate": context.get("repeated_token_estimate"), "claim": "deterministic source structure; not billed tokens"}
+        values = _context_delta_values(context)
+        result = {"metric": "repeated_context_chars", "value": int(context.get("repeated_candidate_chars") or 0), "unit": "characters", "ratio": context.get("repeated_candidate_ratio", 0), "claim": "deterministic source structure; not billed tokens"}
+        if values is None:
+            result["delta_invariant"] = {"status": "FAIL", "reason": "Before/After/Delta are not in one valid measurement universe"}
+        else:
+            result.update(values)
+            result["delta_invariant"] = {"status": "PASS", "rule": "0 <= delta <= before; optimized >= 0; before - optimized == delta"}
+        return result
     return None
 
 
@@ -172,11 +179,28 @@ def _provider_pricing_matches(preflight: dict[str, Any], contract: dict[str, Any
     )
 
 
+def _context_delta_values(context: dict[str, Any]) -> dict[str, int] | None:
+    """Return quantities only when they share one valid context universe."""
+    raw_before = context.get("before_token_estimate", context.get("candidate_token_estimate"))
+    raw_optimized = context.get("optimized_token_estimate")
+    raw_delta = context.get("avoidable_delta_tokens", context.get("repeated_token_estimate"))
+    if raw_before is None or raw_optimized is None or raw_delta is None:
+        return None
+    try:
+        before, optimized, delta = int(raw_before), int(raw_optimized), int(raw_delta)
+    except (TypeError, ValueError):
+        return None
+    if before < 0 or optimized < 0 or delta < 0 or delta > before or before - optimized != delta:
+        return None
+    return {"before_token_estimate": before, "optimized_token_estimate": optimized, "avoidable_delta_tokens": delta, "token_estimate": delta}
+
+
 def _estimated_cost_effect(measurement: dict[str, Any], preflight: dict[str, Any], grade: str) -> dict[str, Any] | None:
     if grade != "L3_ESTIMATED_COST_SAVINGS":
         return None
     context = measurement.get("context") or {}
-    tokens = int(context.get("avoidable_delta_tokens") or context.get("repeated_token_estimate") or 0)
+    values = _context_delta_values(context)
+    tokens = int((values or {}).get("avoidable_delta_tokens") or 0)
     rates = ((preflight.get("pricing_evidence") or {}).get("unit_rates_usd") or {})
     if tokens <= 0 or rates.get("input_tokens") is None:
         return None
@@ -187,10 +211,10 @@ def _estimated_cost_effect(measurement: dict[str, Any], preflight: dict[str, Any
 def _pricing_bound_measurement(measurement: dict[str, Any]) -> bool:
     """Require a reproducible before/optimized quantity delta for L3."""
     context = measurement.get("context") or {}
-    before = int(context.get("before_token_estimate") or context.get("candidate_token_estimate") or 0)
-    optimized = int(context.get("optimized_token_estimate") or 0)
-    delta = int(context.get("avoidable_delta_tokens") or 0)
-    return before > 0 and optimized >= 0 and delta > 0 and before - optimized == delta
+    values = _context_delta_values(context)
+    if values is None:
+        return False
+    return values["before_token_estimate"] > 0 and values["avoidable_delta_tokens"] > 0
 
 
 def _finding_level(rule: str, measurement: dict[str, Any] | None, *, actual_available: bool, global_grade: str) -> str:
@@ -349,9 +373,8 @@ def build_report(static_report: dict[str, Any], acceptance: dict[str, Any], opti
         "deterministic_measurement": deterministic_evidence if deterministic else None,
         "estimated_cost_effect": estimated_cost_effect,
         "context_before_after": {
-            "before_token_estimate": int((deterministic_evidence.get("context") or {}).get("before_token_estimate") or 0),
-            "optimized_token_estimate": int((deterministic_evidence.get("context") or {}).get("optimized_token_estimate") or 0),
-            "avoidable_delta_tokens": int((deterministic_evidence.get("context") or {}).get("avoidable_delta_tokens") or 0),
+            **(_context_delta_values(deterministic_evidence.get("context") or {}) or {"before_token_estimate": None, "optimized_token_estimate": None, "avoidable_delta_tokens": None}),
+            "delta_invariant": (deterministic_evidence.get("context") or {}).get("delta_invariant") or {"status": "NOT_AVAILABLE"},
             "claim": "정적 문맥 구조 후보이며 Provider 청구 토큰·비용이 아님",
         },
     }
@@ -477,7 +500,10 @@ def render_markdown(report: dict[str, Any], language: str = "ko") -> str:
         if m.get("metric") == "retry_activation" and m.get("value") == "disabled":
             return "active retry amplification not found" if english else "활성 재시도 증폭 확인 안 됨"
         if m.get("metric") == "repeated_context_chars":
-            before = m.get("before_token_estimate") or 0; after = m.get("optimized_token_estimate") or 0; delta = m.get("avoidable_delta_tokens") or 0
+            values = _context_delta_values(m)
+            if values is None:
+                return (f"repeated context about {m.get('value', 0):,} chars; token Before/After/Delta withheld because the measurement universe is inconsistent" if english else f"반복 문맥 후보 약 {int(m.get('value') or 0):,}자; 측정 기준이 일치하지 않아 토큰 Before/After/Delta는 표시하지 않음")
+            before = values["before_token_estimate"]; after = values["optimized_token_estimate"]; delta = values["avoidable_delta_tokens"]
             return (f"repeated context about {m.get('value', 0):,} chars; {before:,} → {after:,} estimated tokens ({delta:,} candidate delta; not billed tokens)" if english else f"반복 문맥 후보 약 {int(m.get('value') or 0):,}자; 추정 토큰 {int(before):,} → {int(after):,} (줄일 후보 {int(delta):,}; 청구 토큰 아님)")
         if m.get("metric") == "cacheable_repetition_chars":
             return (f"reusable AI-input context about {m.get('value', 0):,} chars" if english else f"AI 입력 재사용 후보 약 {int(m.get('value') or 0):,}자")
