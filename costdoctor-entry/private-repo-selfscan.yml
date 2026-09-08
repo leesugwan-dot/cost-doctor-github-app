@@ -21,7 +21,7 @@ jobs:
 
       - name: Run CostDoctor read-only static review
         id: doctor
-        uses: leesugwan-dot/cost-doctor-github-app/costdoctor-entry@5b2cadf65e019af279464c073ee8fc28e5e8e60d
+          uses: leesugwan-dot/cost-doctor-github-app/costdoctor-entry@155b376a2efd0d460aa4767dcceefe64ab5cac94 # verified main snapshot
         with:
           repository: '.'
 

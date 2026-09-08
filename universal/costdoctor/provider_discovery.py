@@ -17,6 +17,8 @@ from typing import Any
 
 EXCLUDED = {".git", ".hg", ".svn", "node_modules", "dist", "build", ".venv", "venv", "__pycache__", ".cache"}
 TEXT_SUFFIXES = {".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".json", ".yml", ".yaml", ".md", ".toml", ".ini", ".txt", ".go", ".java", ".rb", ".rs", ".sh"}
+MAX_DISCOVERY_FILE_BYTES = 500_000
+SENSITIVE_NAME = re.compile(r"(?i)^(?:\.env(?:\..*)?|credentials?|secrets?|tokens?|private.?key|.*\.(?:pem|key))$")
 _CONFIDENCE_RANK = {"STRONG": 3, "MEDIUM": 2, "WEAK": 1, "NONE": 0}
 
 
@@ -36,14 +38,22 @@ def _rows(directory: Path, prefix: str) -> list[dict[str, Any]]:
 
 
 def _iter_text(repo: Path):
-    for path in repo.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+    try:
+        paths = sorted(repo.rglob("*"), key=lambda item: str(item.relative_to(repo)).lower())
+    except OSError:
+        paths = []
+    for path in paths:
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
             continue
-        if any(part in EXCLUDED for part in path.relative_to(repo).parts):
+        if any(part in EXCLUDED for part in path.relative_to(repo).parts) or SENSITIVE_NAME.search(path.name):
             continue
         try:
-            yield path, path.read_text(encoding="utf-8", errors="ignore")[:2_000_000]
-        except OSError:
+            with path.open("rb") as handle:
+                raw = handle.read(MAX_DISCOVERY_FILE_BYTES + 1)
+            if len(raw) > MAX_DISCOVERY_FILE_BYTES or b"\x00" in raw:
+                continue
+            yield path, raw.decode("utf-8", errors="ignore")
+        except (OSError, UnicodeError):
             continue
 
 

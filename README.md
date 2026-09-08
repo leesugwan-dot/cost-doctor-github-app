@@ -10,7 +10,7 @@
 
 [**내 공개 GitHub 무료 검사하기**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [**Private repository Self-Scan**](docs/PRIVATE_REPO_SELF_SCAN.md) · [**GitHub Marketplace에서 Action 설치**](https://github.com/marketplace/actions/costdoctor-repository-review)
 
-공개 진단은 Provider Secret 없이 구조 진단과 가능한 무료 정량 측정을 자동으로 이어갑니다. 실제 비용·절감률은 같은 workload의 Provider usage Evidence가 있을 때만 검증됩니다. 고급 측정 경로는 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요.
+공개 진단은 Provider Secret 없이 구조 진단과 가능한 무료 정량 측정을 자동으로 이어갑니다. 결과는 실제 runtime 비용 영향 후보와 안전한 위치, 가능한 토큰·비용 영향, 구체적인 측정 방법을 우선 표시합니다. 실제 비용·절감률은 같은 workload의 Provider usage Evidence가 있을 때만 검증됩니다. 고급 측정 경로는 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요.
 
 처음이라면 [Pages-ready 소개 화면](docs/index.html)에서 20초 요약을 확인하세요.
 

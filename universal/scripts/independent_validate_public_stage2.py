@@ -91,6 +91,10 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
         failures.append("UNKNOWN_STAGE2_STATUS")
     if stage2_status != "COMPLETE_STAGE2" and report.get("trust_level") in {"L2_DETERMINISTIC_MEASUREMENT", "L3_ESTIMATED_COST_SAVINGS", "L4_PROVIDER_REPORTED_USAGE", "L5_VERIFIED_SAVINGS"}:
         failures.append("PARTIAL_STAGE2_PROMOTED")
+    states = dict((report.get("stage2_diagnosis") or {}).get("measurement_states") or {})
+    for required_state in ("structural_diagnosis", "actual_usage", "actual_cost", "actual_savings", "quality_non_regression"):
+        if required_state not in states:
+            failures.append(f"MEASUREMENT_STATE_MISSING:{required_state}")
     retry_evidence = dict((measurement.get("retry") or {}))
     for finding in findings:
         level = str(finding.get("verification_level") or "L1_STRUCTURAL_DIAGNOSIS")
@@ -107,6 +111,12 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
             failures.append("DOCS_WEAK_SIGNAL_TOP1")
         if finding.get("rule") == "CACHE_SIGNAL" and (measurement.get("cache") or {}).get("ordinary_cache_occurrences") and not (measurement.get("cache") or {}).get("llm_relevant_occurrences") and level != "L1_STRUCTURAL_DIAGNOSIS":
             failures.append("ORDINARY_CACHE_PROMOTED")
+        runtime_impact = dict(finding.get("runtime_impact") or {})
+        if finding.get("rule") == "MODEL_CALL" and not int(runtime_impact.get("runtime_invocation_count") or 0) and finding.get("impact_level") == "HIGH":
+            failures.append("NON_RUNTIME_MODEL_CALL_MARKED_HIGH")
+        for location in finding.get("locations") or []:
+            if not isinstance(location, dict) or str(location.get("relative_path") or "").startswith(("/", "\\")) or ":\\" in str(location.get("relative_path") or ""):
+                failures.append("UNSAFE_FINDING_LOCATION")
     safety = measurement.get("execution") or {}
     safety_zero = safety.get("provider_calls", 0) == 0 and safety.get("target_code_executed") is False and safety.get("secret_used") is False
     if not safety_zero:
@@ -133,6 +143,9 @@ def validate(binding: dict[str, Any], preflight: dict[str, Any], report: dict[st
         "free_path_zero_execution": safety_zero,
         "multi_provider_not_forced": status != "MULTIPLE_PROVIDERS" or report.get("trust_level") != "L3_ESTIMATED_COST_SAVINGS",
         "stage2_status_accurate": stage2_status == "COMPLETE_STAGE2" or report.get("trust_level") == "L1_STRUCTURAL_DIAGNOSIS",
+        "measurement_states_separated": not any(item.startswith("MEASUREMENT_STATE_MISSING") for item in failures),
+        "non_runtime_not_high": "NON_RUNTIME_MODEL_CALL_MARKED_HIGH" not in failures,
+        "finding_locations_safe": "UNSAFE_FINDING_LOCATION" not in failures,
     }
     return {
         "schema": "costdoctor.public-stage2-independent-validation.r4.v1",
