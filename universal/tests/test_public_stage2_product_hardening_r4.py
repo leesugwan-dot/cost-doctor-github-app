@@ -82,6 +82,34 @@ class ProductHardeningR4Tests(unittest.TestCase):
         self.assertEqual(result["verdict"], "FAIL")
         self.assertIn("DISABLED_RETRY_MARKED_HIGH", result["failures"])
 
+    def test_context_delta_invariant_is_required_for_user_numbers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            invalid = self.measurement()
+            invalid["context"].update({"before_token_estimate": 1837, "optimized_token_estimate": 0, "avoidable_delta_tokens": 3617})
+            report = REPORT.build_report(self.static(), {"local_verdict": "PASS", "workloads": []}, Path(tmp), {"credential_present": False}, None, target_binding=self.binding(invalid))
+            text = REPORT.render_markdown(report, "ko")
+        self.assertNotIn("1,837 → 0", text)
+        self.assertIn("측정 기준이 일치하지 않아", text)
+        self.assertIsNone(report["user_summary"]["context_before_after"]["before_token_estimate"])
+
+    def test_independent_rejects_invalid_l2_delta(self):
+        binding = self.binding(self.measurement())
+        binding["deterministic_measurement"]["context"].update({"before_token_estimate": 1837, "optimized_token_estimate": 0, "avoidable_delta_tokens": 3617})
+        report = {"trust_level": "L2_DETERMINISTIC_MEASUREMENT", "verdict": "DETERMINISTIC_MEASUREMENT", "stage2_diagnosis": {"status": "COMPLETE_STAGE2", "findings": []}}
+        result = VALIDATOR.validate(binding, {"credential_present": False}, report)
+        self.assertEqual(result["verdict"], "FAIL")
+        self.assertIn("L2_DETERMINISTIC_DELTA_INVARIANT_FAILED", result["failures"])
+
+    def test_precheck_keeps_global_repetition_out_of_context_delta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "app.py").write_text("""prompt = 'same context payload that is intentionally long enough for analysis'\nprompt = 'same context payload that is intentionally long enough for analysis'\n# ordinary repeated source line\nordinary = '""" + ("x" * 400) + "'\nordinary = '""" + ("x" * 400) + "'\n""", encoding="utf-8")
+            measurement = PRECHECK._bounded_deterministic_measurement(root)
+        context = measurement["context"]
+        self.assertLessEqual(context["repeated_candidate_chars"], context["candidate_chars"])
+        self.assertGreaterEqual(context["global_repeated_source_chars"], context["repeated_candidate_chars"])
+        self.assertEqual(context["before_token_estimate"] - context["optimized_token_estimate"], context["avoidable_delta_tokens"])
+
     def test_node_scanner_distinguishes_categories_and_cache(self):
         node = shutil.which("node") or shutil.which("nodejs")
         self.assertIsNotNone(node, "Node.js is required for the scanner contract test")
