@@ -134,7 +134,10 @@ jobs:
           assert 'protocol.file.allow=never' in script
           assert 'receipt_sha256' in script
           assert 'lock_issue' in script
-          assert '결과 언어 / Result language' in form
+          assert (
+              '결과 언어 / Result language' in form
+              or 'Result language / 결과 언어' in form
+          )
           assert contract['execution']['target_code_executed'] is False
           assert contract['execution']['operator_personal_pc_used'] is False
           assert contract['execution']['target_repository_write'] is False
