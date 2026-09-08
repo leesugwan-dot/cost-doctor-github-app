@@ -68,6 +68,7 @@ jobs:
       - name: Python unit tests
         run: |
           python3 .github/scripts/test_public_scan.py
+          python3 .github/scripts/test_public_scan_owner_bypass.py
           python3 .github/scripts/test_budget_guard.py
           python3 .github/scripts/test_user_evidence_report.py
           python3 .github/scripts/test_discovery_contract.py
@@ -92,6 +93,7 @@ jobs:
 
           workflow = Path('.github/workflows/public-scan.yml').read_text(encoding='utf-8')
           script = Path('.github/scripts/public_scan.py').read_text(encoding='utf-8')
+          owner_entry = Path('.github/scripts/public_scan_entry.py').read_text(encoding='utf-8')
           form = Path('.github/ISSUE_TEMPLATE/public-scan.yml').read_text(encoding='utf-8')
           private_workflow = Path('costdoctor-entry/private-repo-selfscan.yml').read_text(encoding='utf-8')
           user_evidence_workflow = Path('.github/workflows/user-evidence-report.yml').read_text(encoding='utf-8')
@@ -114,6 +116,9 @@ jobs:
           assert 'contents: write' not in workflow
           assert 'pull_request_target' not in workflow
           assert 'secrets.' not in workflow
+          assert 'public_scan_entry.py' in workflow
+          assert 'is_repository_owner' in owner_entry
+          assert '_BASE_ENFORCE_RATE_LIMIT' in owner_entry
           assert 'PUBLIC_REPO_REQUIRED' in script
           assert 'MAX_SCANS_PER_USER_24H = 5' in script
           assert 'GIT_CONFIG_NOSYSTEM' in script

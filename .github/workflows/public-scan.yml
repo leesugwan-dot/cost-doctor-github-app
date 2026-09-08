@@ -37,7 +37,7 @@ jobs:
         id: scan
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/public_scan.py
+        run: python3 .github/scripts/public_scan_entry.py
 
       - name: Keep sanitized result and receipt briefly
         if: ${{ always() && steps.scan.outputs.public-output-dir != '' }}
