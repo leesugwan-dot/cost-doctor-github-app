@@ -79,4 +79,4 @@ The Action writes a runner-local `report.json` and `report.md` and exposes `repo
 
 [Privacy](PRIVACY.md) · [Terms](TERMS.md) · [Operator policy](OPERATOR_POLICY.md) · [Security](SECURITY.md) · [Support](SUPPORT.md) · [Apache-2.0 license](LICENSE)
 
-CostDoctor is Apache-2.0 at the public integration layer. D5 automatic code changes, D7 paid features, and D9 external-provider automatic fixes are not advertised as available features.
+CostDoctor is Apache-2.0 at the public integration layer. Automatic code changes, paid features, and external-provider automatic fixes are not advertised as available features.
