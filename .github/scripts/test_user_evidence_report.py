@@ -41,6 +41,10 @@ class UserEvidenceReportTests(unittest.TestCase):
         self.assertEqual(signals["external_scan_requesters_unique"], 1)
         self.assertEqual(signals["successful_external_scan_runs_total"], 1)
         self.assertEqual(signals["external_feedback_issues_total"], 1)
+        self.assertEqual(signals["owner_test_requests_total"], 1)
+        self.assertEqual(signals["confirmed_external_actor_requests_total"], 2)
+        self.assertEqual(signals["confirmed_external_actor_runs_total"], 2)
+        self.assertEqual(signals["failed_external_scan_runs_total"], 1)
         self.assertTrue(report["external_interest_detected"])
         self.assertTrue(report["confirmed_public_scan_usage_detected"])
 
@@ -68,6 +72,19 @@ class UserEvidenceReportTests(unittest.TestCase):
         self.assertTrue(MODULE.has_new_evidence(report, None))
         previous = MODULE.parse_marker(MODULE.marker(report))
         self.assertFalse(MODULE.has_new_evidence(report, previous))
+
+    def test_missing_actor_is_anonymous_but_not_external(self):
+        report = MODULE.build_report(
+            self.repo,
+            [{"title": "[CostDoctor Scan] anonymous", "user": {}}],
+            [],
+            "leesugwan-dot",
+            "2026-09-08T00:00:00+00:00",
+        )
+        signals = report["signals"]
+        self.assertEqual(signals["anonymous_public_requests_total"], 1)
+        self.assertEqual(signals["confirmed_external_actor_requests_total"], 0)
+        self.assertFalse(report["external_interest_detected"])
 
 
 if __name__ == "__main__":

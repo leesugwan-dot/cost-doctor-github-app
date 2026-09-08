@@ -1,5 +1,16 @@
 # GitHub Marketplace 공개 문구
 
+## 30초 제품 설명
+
+CostDoctor is a free, read-only GitHub Action and Public Quick Scan for finding AI/LLM cost-waste structure. A public user enters one repository URL, sees a sanitized Stage 1 + Stage 2 result, and can install the Action for repeat checks. The free path does not require an API key, execute target code, modify the repository, or claim verified savings without matching Provider usage evidence.
+
+## 권한과 경계
+
+- Public Scan: GitHub-hosted runner, `contents: read`, and `issues: write` only for its own result Issue.
+- Private Self-Scan: customer workflow with `contents: read`.
+- No automatic commit, push, branch, PR, merge, external AI upload, or paid model call in the free path.
+- Verified Savings is an optional advanced path that requires the customer's own Secret and spend approval.
+
 상태: `CURRENT_FREE_LISTING_COPY / OWNER_RELEASE_PENDING`
 
 ## 공개 형태

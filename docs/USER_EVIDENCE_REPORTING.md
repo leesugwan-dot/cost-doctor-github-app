@@ -9,6 +9,8 @@ CostDoctor keeps external telemetry off. User evidence is derived only from publ
 - Public feedback Issues whose title starts with `[CostDoctor Feedback]`
 - Repository stars and forks as interest signals only, not as confirmed users
 
+Each repository-native scan/run is classified in memory into `OWNER_TEST`, `ANONYMOUS_PUBLIC_REQUEST`, or `CONFIRMED_EXTERNAL_ACTOR`. Outcomes are tracked separately as `PUBLIC_SCAN_SUCCESS` or `PUBLIC_SCAN_FAILURE`. Owner tests never increase external-user counts.
+
 ## What is never persisted or reported
 
 - Customer source code, filenames, user Issue bodies or comments, secrets, or private-repository activity
@@ -16,6 +18,8 @@ CostDoctor keeps external telemetry off. User evidence is derived only from publ
 - External analytics, cookies, pixels, or third-party telemetry
 
 Reports contain aggregate counts only. Usernames are processed in memory solely to deduplicate public actors and are never written to the report, artifact, log, or notification Issue.
+
+The minimum funnel is `request_received → validation_pass → dispatch_pass → scan_pass → result_pass`, plus a failure category when a trusted run fails. No IP, source, filename, secret, clickstream, or permanent request profile is stored.
 
 GitHub's Issues API may include body fields in its response. The reporter never inspects, persists, or outputs user Issue bodies or comments; it reads only the machine marker in its own tracking Issue to prevent duplicate notifications.
 

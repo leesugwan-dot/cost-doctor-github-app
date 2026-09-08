@@ -9,12 +9,14 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 API = "https://api.github.com"
 MAX_REPO_KB = 50000
 MAX_SCANS_PER_USER_24H = 5
+MAX_REPOSITORY_INPUT_LENGTH = 2048
 TITLE_PREFIX = "[CostDoctor Scan]"
 URL_HEADING = "### GitHub 저장소 주소"
 LANG_HEADING = "### 결과 언어 / Result language"
@@ -53,7 +55,13 @@ def extract_field(body, heading):
 
 
 def normalize_repo(value):
+    if not isinstance(value, str):
+        raise ValueError("URL_INVALID")
     raw = value.strip()
+    if not raw or len(raw) > MAX_REPOSITORY_INPUT_LENGTH:
+        raise ValueError("URL_INVALID")
+    if any(ord(char) < 0x20 or ord(char) == 0x7F for char in raw):
+        raise ValueError("URL_INVALID")
     if "://" not in raw and raw.startswith("github.com/"):
         raw = "https://" + raw
     parsed = urllib.parse.urlparse(raw)
@@ -63,6 +71,8 @@ def normalize_repo(value):
         raise ValueError("URL_INVALID")
     parts = [urllib.parse.unquote(p) for p in parsed.path.split("/") if p]
     if len(parts) < 2:
+        raise ValueError("URL_INVALID")
+    if any(part in {".", ".."} for part in parts):
         raise ValueError("URL_INVALID")
     owner, repo = parts[0], parts[1]
     if repo.endswith(".git"):
@@ -304,7 +314,36 @@ def safe_tool_sha(value):
     return value if isinstance(value, str) and re.fullmatch(r"[a-f0-9]{40}", value) else "UNKNOWN"
 
 
-def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, generated_at=None, stage2_status="PENDING", stage2_trust_level="UNKNOWN"):
+def classify_usage_evidence(repository, actor, actor_type, outcome="PUBLIC_SCAN_SUCCESS"):
+    """Return aggregate-only usage categories without persisting actor identity."""
+    owner = str(repository or "").split("/", 1)[0].strip().casefold()
+    login = str(actor or "").strip().casefold()
+    if not login:
+        request_category = "ANONYMOUS_PUBLIC_REQUEST"
+    elif actor_type.lower() == "bot" or login.endswith("[bot]"):
+        request_category = "AUTOMATION_REJECTED"
+    elif owner and login == owner:
+        request_category = "OWNER_TEST"
+    else:
+        request_category = "CONFIRMED_EXTERNAL_ACTOR"
+    return {
+        "request_category": request_category,
+        "outcome_category": outcome,
+        "funnel": {
+            "request_received": True,
+            "validation_pass": outcome not in {"PUBLIC_SCAN_FAILURE", "INPUT_REJECTED"},
+            "dispatch_pass": outcome not in {"PUBLIC_SCAN_FAILURE", "INPUT_REJECTED"},
+            "scan_pass": outcome == "PUBLIC_SCAN_SUCCESS",
+            "result_pass": outcome == "PUBLIC_SCAN_SUCCESS",
+        },
+        "request_id": uuid.uuid4().hex,
+        "identity_persisted": False,
+        "ip_persisted": False,
+        "source_persisted": False,
+    }
+
+
+def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, generated_at=None, stage2_status="PENDING", stage2_trust_level="UNKNOWN", usage_evidence=None):
     coverage = report.get("coverage") or {}
     findings = [
         {"rule": f.get("rule"), "signal_count": int(f.get("signal_count") or 0)}
@@ -339,6 +378,15 @@ def build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, gener
         "target_commit": meta.get("head"),
         "costdoctor": {"head": safe_tool_sha(tool_sha)},
         "run": {"issue_url": issue_url, "actions_run_url": run_url},
+        "usage_evidence": usage_evidence or {
+            "request_category": "ANONYMOUS_PUBLIC_REQUEST",
+            "outcome_category": "PUBLIC_SCAN_SUCCESS",
+            "funnel": {},
+            "request_id": "NOT_RECORDED",
+            "identity_persisted": False,
+            "ip_persisted": False,
+            "source_persisted": False,
+        },
         "claims": {
             "static_review_signals_only": True,
             "actual_calls_measured": False,
@@ -525,6 +573,7 @@ def main():
     lang = parse_language(body)
     target_repo = None
     status_comment_id = None
+    usage_evidence = classify_usage_evidence(repository, actor, actor_type, "PUBLIC_SCAN_SUCCESS")
     try:
         if actor_type.lower() == "bot" or actor.endswith("[bot]"):
             raise ValueError("BOT_NOT_ALLOWED")
@@ -556,7 +605,7 @@ def main():
             timeout=120
         )
         report = load_report(result_dir)
-        receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha)
+        receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, usage_evidence=usage_evidence)
         markdown = format_result(report, target_repo, meta, lang, issue_url, run_url, receipt=receipt)
         stage2_sources = []
         try:
@@ -566,7 +615,7 @@ def main():
             stage2_markdown_path = stage2_dir / "verified_savings_report.md"
             stage2_json_path = stage2_dir / "verified_savings_report.json"
             stage2_payload = json.loads(stage2_json_path.read_text(encoding="utf-8"))
-            receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, stage2_status="COMPLETE_STAGE2", stage2_trust_level=stage2_payload.get("trust_level", "UNKNOWN"))
+            receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, stage2_status="COMPLETE_STAGE2", stage2_trust_level=stage2_payload.get("trust_level", "UNKNOWN"), usage_evidence=usage_evidence)
             stage2_markdown = stage2_markdown_path.read_text(encoding="utf-8")
             # Stage 2 is the single integrated user report.  It carries the
             # Stage 1 canonical signal table and the interpretation, so the
@@ -595,7 +644,10 @@ def main():
                 if lang != "en"
                 else "## CostDoctor Stage 2\n\n**Status:** `STAGE2_UNAVAILABLE`\n\nUniversal Stage 2 could not complete in this run. Actual cost and savings remain unverified."
             )
-            receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, stage2_status="PARTIAL_STAGE1_ONLY", stage2_trust_level="UNKNOWN")
+            usage_evidence["outcome_category"] = "PUBLIC_SCAN_FAILURE"
+            usage_evidence["funnel"]["scan_pass"] = False
+            usage_evidence["funnel"]["result_pass"] = False
+            receipt = build_receipt(report, target_repo, meta, issue_url, run_url, tool_sha, stage2_status="PARTIAL_STAGE1_ONLY", stage2_trust_level="UNKNOWN", usage_evidence=usage_evidence)
             markdown = markdown + "\n\n---\n\n" + fallback
         write_public_output(public_output_dir, markdown, receipt, stage2_sources)
         append_runner_file("GITHUB_STEP_SUMMARY", markdown + "\n")
@@ -621,6 +673,11 @@ def main():
     except Exception as e:
         code = str(e) if re.fullmatch(r"[A-Z0-9_]+", str(e)) else "INTERNAL_ERROR"
 
+    usage_evidence["outcome_category"] = "PUBLIC_SCAN_FAILURE"
+    usage_evidence["funnel"]["validation_pass"] = False
+    usage_evidence["funnel"]["dispatch_pass"] = False
+    usage_evidence["funnel"]["scan_pass"] = False
+    usage_evidence["funnel"]["result_pass"] = False
     try:
         error_markdown = friendly_error(code, lang, retry_url)
         if status_comment_id:

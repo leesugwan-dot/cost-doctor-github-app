@@ -1,12 +1,18 @@
 # CostDoctor 무료 공개 저장소 진단
 
-[처음 방문했다면 Pages-ready 소개 화면](index.html) · [저장소 README](../README.md) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
+[처음 방문했다면 Pages Quick Scan 화면](https://leesugwan-dot.github.io/cost-doctor-github-app/) · [저장소 README](../README.md) · [Private Self-Scan](PRIVATE_REPO_SELF_SCAN.md)
 
 [FAQ](PUBLIC_SCAN_FAQ.md) · [상태 코드](PUBLIC_SCAN_STATUS_CODES.md) · [실제 예시](PUBLIC_SCAN_EXAMPLE.md) · [보안 경계](../SECURITY.md) · [코드/개인정보 처리 초안](../PRIVACY_DRAFT.md) · [기계 판독 계약](../public_scan_contract.json)
 
+## Quick Scan 기본 경로
+
+[Pages Quick Scan](https://leesugwan-dot.github.io/cost-doctor-github-app/)에서 공개 GitHub URL 하나를 입력하면 브라우저가 `owner/repository`로 정규화하고 안전한 GitHub Issue Form으로 이동합니다. 이 정적 화면에는 GitHub credential, workflow, ref, runner, shell, secret이 없습니다. Issue Form은 공개 결과 동의를 받는 trusted fallback 경로이며 기존 `public-scan.yml`을 그대로 사용합니다.
+
+진행 상태는 `요청 접수 → 분석 중 → 완료/실패`로 안내합니다. 실제 결과는 GitHub Issue의 단일 CostDoctor 댓글에서 확인합니다.
+
 ## 가장 간단한 사용법
 
-1. [무료 공개 저장소 진단 시작](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 엽니다.
+1. [Pages Quick Scan](https://leesugwan-dot.github.io/cost-doctor-github-app/) 또는 [fallback Issue Form](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 엽니다.
 2. 검사할 **공개 GitHub 저장소 주소**를 붙여넣습니다.
 3. 결과 언어를 선택합니다.
 4. 공개 진단 고지를 확인하고 `Submit new issue`를 누릅니다.

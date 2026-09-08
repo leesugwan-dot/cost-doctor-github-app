@@ -37,6 +37,25 @@ class PublicScanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mod.normalize_repo("https://user:pass@github.com/openai/openai")
 
+    def test_reject_path_traversal_and_oversized_input(self):
+        with self.assertRaisesRegex(ValueError, "URL_INVALID"):
+            mod.normalize_repo("https://github.com/openai/openai/../../secrets")
+        with self.assertRaisesRegex(ValueError, "URL_INVALID"):
+            mod.normalize_repo("https://github.com/" + ("a" * 2050) + "/repo")
+        with self.assertRaisesRegex(ValueError, "URL_INVALID"):
+            mod.normalize_repo("https://github.com/openai/openai\nwhoami")
+
+    def test_usage_evidence_categories_do_not_persist_identity(self):
+        owner = mod.classify_usage_evidence("owner/tool", "owner", "User")
+        external = mod.classify_usage_evidence("owner/tool", "outside", "User")
+        anonymous = mod.classify_usage_evidence("owner/tool", "", "")
+        self.assertEqual(owner["request_category"], "OWNER_TEST")
+        self.assertEqual(external["request_category"], "CONFIRMED_EXTERNAL_ACTOR")
+        self.assertEqual(anonymous["request_category"], "ANONYMOUS_PUBLIC_REQUEST")
+        self.assertNotIn("outside", json.dumps(external))
+        self.assertFalse(external["identity_persisted"])
+        self.assertFalse(external["ip_persisted"])
+
     def test_extract_and_language(self):
         body = """### GitHub 저장소 주소
 
@@ -127,6 +146,7 @@ English
         self.assertRegex(r1["receipt_sha256"], r"^[a-f0-9]{64}$")
         self.assertEqual(r1["target"]["head"], "a" * 40)
         self.assertEqual(r1["costdoctor"]["head"], "b" * 40)
+        self.assertEqual(r1["usage_evidence"]["request_category"], "ANONYMOUS_PUBLIC_REQUEST")
         self.assertFalse(r1["privacy"]["operator_personal_pc_used"])
         self.assertFalse(r1["claims"]["actual_savings_verified"])
 

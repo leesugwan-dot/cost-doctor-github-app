@@ -8,11 +8,11 @@
 
 ## Start here
 
-[**내 공개 GitHub 무료 검사하기**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [**Private repository Self-Scan**](docs/PRIVATE_REPO_SELF_SCAN.md) · [**GitHub Marketplace에서 Action 설치**](https://github.com/marketplace/actions/costdoctor-repository-review)
+[**Pages Quick Scan 화면 열기**](https://leesugwan-dot.github.io/cost-doctor-github-app/) · [**내 공개 GitHub 무료 검사하기 (Issue Form fallback)**](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml) · [**Private repository Self-Scan**](docs/PRIVATE_REPO_SELF_SCAN.md) · [**GitHub Marketplace에서 Action 설치**](https://github.com/marketplace/actions/costdoctor-repository-review)
 
 공개 진단은 Provider Secret 없이 구조 진단과 가능한 무료 정량 측정을 자동으로 이어갑니다. 결과는 실제 runtime 비용 영향 후보와 안전한 위치, 가능한 토큰·비용 영향, 구체적인 측정 방법을 우선 표시합니다. 실제 비용·절감률은 같은 workload의 Provider usage Evidence가 있을 때만 검증됩니다. 고급 측정 경로는 [**Verified Savings workflow 안내**](docs/PUBLIC_VERIFIED_SAVINGS.md)를 참고하세요.
 
-처음이라면 [Pages-ready 소개 화면](docs/index.html)에서 20초 요약을 확인하세요.
+처음이라면 [Pages Quick Scan 화면](https://leesugwan-dot.github.io/cost-doctor-github-app/)에서 주소 하나를 입력해 안전한 GitHub 진단 양식으로 이동하세요. 브라우저에서 주소를 먼저 검사하며 credential·workflow·ref·runner·secret을 받지 않습니다.
 
 ### 10초 요약
 
@@ -24,10 +24,12 @@
 
 ## 공개 저장소: 설치 없이 한 번 사용하기
 
-1. [무료 공개 저장소 진단 시작](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 엽니다.
-2. 검사할 **공개 GitHub 저장소 주소** 하나를 붙여넣습니다.
-3. 한국어 또는 English를 선택하고 제출합니다.
-4. 완료되면 같은 Issue에 정리된 결과와 검증 영수증이 남습니다.
+1. [Pages Quick Scan 화면](https://leesugwan-dot.github.io/cost-doctor-github-app/)을 엽니다.
+2. 검사할 **공개 GitHub 저장소 주소** 하나와 결과 언어를 입력합니다.
+3. 브라우저 검증 후 열리는 trusted GitHub form에서 공개 결과 안내를 확인하고 제출합니다.
+4. 완료되면 같은 Issue에 정리된 Stage 1 + Stage 2 결과와 검증 영수증이 남습니다.
+
+Issue Form을 직접 쓰고 싶다면 [fallback 양식](https://github.com/leesugwan-dot/cost-doctor-github-app/issues/new?template=public-scan.yml)을 사용하세요.
 
 공개 진단은 실제 API 호출·청구·절감액을 측정하지 않습니다. 정적 신호는 실행 중 낭비량이 아니며, 실제 비용·품질 주장은 별도 Provider Evidence 없이는 `UNKNOWN`입니다. 자세한 범위는 [공개 진단 안내](docs/PUBLIC_SCAN.md)를 보세요.
 

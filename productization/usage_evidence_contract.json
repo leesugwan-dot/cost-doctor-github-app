@@ -1,0 +1,29 @@
+{
+  "schema": "costdoctor.usage-evidence.categories.v1",
+  "categories": [
+    "OWNER_TEST",
+    "ANONYMOUS_PUBLIC_REQUEST",
+    "PUBLIC_SCAN_SUCCESS",
+    "PUBLIC_SCAN_FAILURE",
+    "CONFIRMED_EXTERNAL_ACTOR",
+    "PRIVATE_SELF_SCAN"
+  ],
+  "rules": {
+    "owner_tests_excluded_from_external": true,
+    "username_persisted": false,
+    "ip_persisted": false,
+    "source_persisted": false,
+    "clickstream_persisted": false,
+    "private_self_scan": "UNKNOWN_WITHOUT_TELEMETRY",
+    "success_requires": "trusted public-scan workflow conclusion success",
+    "failure_requires": "trusted public-scan workflow conclusion failure or explicit rejected request"
+  },
+  "funnel": [
+    "request_received",
+    "validation_pass",
+    "dispatch_pass",
+    "scan_pass",
+    "result_pass",
+    "failure_category"
+  ]
+}

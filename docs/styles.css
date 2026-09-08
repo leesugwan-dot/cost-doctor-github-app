@@ -30,6 +30,14 @@ h3 { font-size: 1.35rem; }
 .lede { color: #d6e3ef; font-size: 1.16rem; max-width: 690px; margin: 0 0 14px; }
 .lede-ko { color: var(--muted); max-width: 690px; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; margin-top: 30px; }
+.quick-scan { background: rgba(16, 27, 41, .76); border: 1px solid #31536c; border-radius: .9rem; margin-top: 30px; max-width: 840px; padding: 18px; }
+.quick-scan label { display: block; color: var(--muted); font-size: .86rem; font-weight: 700; margin-bottom: 8px; }
+.quick-scan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }
+.quick-scan input, .quick-scan select { background: #071321; border: 1px solid #44617b; border-radius: .55rem; color: var(--ink); font: inherit; min-height: 48px; padding: .68rem .8rem; }
+.quick-scan input:focus, .quick-scan select:focus, .quick-scan button:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+.quick-scan-status { color: var(--muted); font-size: .82rem; margin: 10px 0 0; }
+.quick-scan-status[data-state="failure"] { color: #fda4af; }
+.quick-scan-status[data-state="accepted"] { color: #86efac; }
 .button { border: 1px solid transparent; border-radius: .65rem; display: inline-block; font-weight: 720; padding: .78rem 1.05rem; text-decoration: none; }
 .button.primary { background: var(--accent-strong); color: #062032; }
 .button.primary:hover { background: #7dd3fc; color: #041a2a; }
@@ -71,6 +79,7 @@ pre code { background: none; border: 0; padding: 0; color: #d6e3ef; }
   .hero-grid, .example { grid-template-columns: 1fr; gap: 36px; padding: 64px 0 74px; }
   .section { padding: 68px 0; }
   .path-grid, .signal-grid { grid-template-columns: 1fr; }
+  .quick-scan-row { grid-template-columns: 1fr; }
   .path-card p:not(.card-kicker) { min-height: 0; }
   .link-grid { grid-template-columns: 1fr 1fr; }
 }

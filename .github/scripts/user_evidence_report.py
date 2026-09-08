@@ -39,6 +39,19 @@ def _is_external(login: str, owner: str) -> bool:
     return bool(normalized and normalized != owner.strip().lower() and not normalized.endswith("[bot]"))
 
 
+def _actor_category(login: str, owner: str) -> str:
+    """Classify an actor in memory; only aggregate counts leave this module."""
+    normalized = login.strip().lower()
+    owner_normalized = owner.strip().lower()
+    if not normalized:
+        return "ANONYMOUS_PUBLIC_REQUEST"
+    if normalized.endswith("[bot]"):
+        return "AUTOMATION"
+    if normalized == owner_normalized:
+        return "OWNER_TEST"
+    return "CONFIRMED_EXTERNAL_ACTOR"
+
+
 def _external_issue_actors(
     issues: list[dict[str, Any]], owner: str, prefix: str
 ) -> list[str]:
@@ -63,11 +76,34 @@ def build_report(
 ) -> dict[str, Any]:
     scan_actors = _external_issue_actors(issues, owner, SCAN_TITLE_PREFIX)
     feedback_actors = _external_issue_actors(issues, owner, FEEDBACK_TITLE_PREFIX)
+    scan_categories = {
+        "OWNER_TEST": 0,
+        "ANONYMOUS_PUBLIC_REQUEST": 0,
+        "CONFIRMED_EXTERNAL_ACTOR": 0,
+    }
+    for issue in issues:
+        if "pull_request" in issue or not str(issue.get("title") or "").startswith(SCAN_TITLE_PREFIX):
+            continue
+        category = _actor_category(_login(issue.get("user")), owner)
+        if category in scan_categories:
+            scan_categories[category] += 1
+
     successful_run_actors: list[str] = []
+    failed_run_actors: list[str] = []
+    run_categories = {
+        "OWNER_TEST": 0,
+        "ANONYMOUS_PUBLIC_REQUEST": 0,
+        "CONFIRMED_EXTERNAL_ACTOR": 0,
+    }
     for run in workflow_runs:
         actor = _login(run.get("actor"))
+        category = _actor_category(actor, owner)
+        if category in run_categories:
+            run_categories[category] += 1
         if run.get("conclusion") == "success" and _is_external(actor, owner):
             successful_run_actors.append(actor)
+        elif run.get("conclusion") not in {"success", "skipped", "cancelled"} and _is_external(actor, owner):
+            failed_run_actors.append(actor)
 
     signals = {
         "external_scan_requests_total": len(scan_actors),
@@ -76,6 +112,13 @@ def build_report(
         "successful_external_scan_users_unique": len(set(successful_run_actors)),
         "external_feedback_issues_total": len(feedback_actors),
         "external_feedback_authors_unique": len(set(feedback_actors)),
+        "owner_test_requests_total": scan_categories["OWNER_TEST"],
+        "anonymous_public_requests_total": scan_categories["ANONYMOUS_PUBLIC_REQUEST"],
+        "confirmed_external_actor_requests_total": scan_categories["CONFIRMED_EXTERNAL_ACTOR"],
+        "owner_test_runs_total": run_categories["OWNER_TEST"],
+        "anonymous_public_runs_total": run_categories["ANONYMOUS_PUBLIC_REQUEST"],
+        "confirmed_external_actor_runs_total": run_categories["CONFIRMED_EXTERNAL_ACTOR"],
+        "failed_external_scan_runs_total": len(failed_run_actors),
         "repository_stars": int(repo_meta.get("stargazers_count") or 0),
         "repository_forks": int(repo_meta.get("forks_count") or 0),
     }
@@ -85,6 +128,7 @@ def build_report(
             "external_scan_requests_total",
             "successful_external_scan_runs_total",
             "external_feedback_issues_total",
+            "failed_external_scan_runs_total",
         )
     )
     confirmed_usage = signals["successful_external_scan_runs_total"] > 0
@@ -105,6 +149,14 @@ def build_report(
             "usernames_output": False,
             "user_issue_bodies_or_comments_output": False,
             "tracking_issue_marker_read": True,
+            "usage_categories": [
+                "OWNER_TEST",
+                "ANONYMOUS_PUBLIC_REQUEST",
+                "PUBLIC_SCAN_SUCCESS",
+                "PUBLIC_SCAN_FAILURE",
+                "CONFIRMED_EXTERNAL_ACTOR",
+                "PRIVATE_SELF_SCAN",
+            ],
             "customer_source_or_filenames_read": False,
             "private_repository_activity_read": False,
             "external_telemetry": False,
@@ -129,6 +181,11 @@ def render_markdown(report: dict[str, Any]) -> str:
 | Successful external public-scan runs | {s['successful_external_scan_runs_total']} |
 | Unique successful external public-scan users | {s['successful_external_scan_users_unique']} |
 | External feedback Issues | {s['external_feedback_issues_total']} |
+| Owner test requests (excluded from external) | {s['owner_test_requests_total']} |
+| Anonymous public requests | {s['anonymous_public_requests_total']} |
+| Confirmed external-actor requests | {s['confirmed_external_actor_requests_total']} |
+| Confirmed external-actor runs | {s['confirmed_external_actor_runs_total']} |
+| Failed external scan runs | {s['failed_external_scan_runs_total']} |
 | Repository stars (interest only) | {s['repository_stars']} |
 | Repository forks (interest only) | {s['repository_forks']} |
 
@@ -141,6 +198,7 @@ def signature(report: dict[str, Any]) -> dict[str, int]:
         "external_scan_requests_total",
         "successful_external_scan_runs_total",
         "external_feedback_issues_total",
+        "failed_external_scan_runs_total",
     )
     return {key: int(report["signals"][key]) for key in keys}
 
