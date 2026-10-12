@@ -116,7 +116,7 @@ jobs:
           COSTDOCTOR_JS
       - name: Keep sanitized report only
         if: ${{ always() && steps.doctor.outputs.report-directory != '' }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6 (Node24)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v6 (Node24)
         with:
           name: costdoctor-report
           path: ${{ steps.doctor.outputs.report-directory }}/report.*
